@@ -22,6 +22,69 @@ html[data-layout="comfortable"] body {
   padding-inline: clamp(12px, 3vw, 28px);
 }
 
+/* 应用壳 + 侧边栏布局 */
+.side-layout .app-shell {
+  display: grid;
+  grid-template-columns: 250px 1fr;
+  min-height: 100dvh;
+}
+@media (max-width: 1100px) {
+  .side-layout .app-shell { grid-template-columns: 1fr; }
+}
+.sidebar {
+  position: sticky;
+  top: 0;
+  align-self: start;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  gap: .8rem;
+  padding: 1rem .8rem;
+  background: color-mix(in oklab, var(--color-bg) 94%, transparent);
+  border-right: var(--border-soft);
+}
+.side-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: .4rem .35rem;
+}
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: .6rem;
+  font-weight: 800;
+  letter-spacing: .2px;
+}
+.brand-text { font-size: 1.05rem; }
+.side-nav {
+  display: flex;
+  flex-direction: column;
+  gap: .35rem;
+}
+.side-nav .tab-link {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  padding: .6rem .7rem;
+  border-radius: 10px;
+  color: var(--color-text-secondary);
+}
+.side-nav .tab-link.active {
+  color: var(--color-accent-text);
+  background: color-mix(in oklab, var(--color-accent-primary) 12%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--color-accent-primary) 26%, transparent);
+}
+.side-foot {
+  margin-top: auto;
+  padding: .6rem .4rem .3rem;
+  color: var(--color-text-secondary);
+  font-size: .85rem;
+}
+.content {
+  display: block;
+}
+
 /* 顶部区域 */
 .page-header {
   position: sticky;
@@ -80,6 +143,17 @@ html[data-layout="comfortable"] body {
     color-mix(in oklab, var(--color-accent-primary) 86%, transparent),
     color-mix(in oklab, var(--color-accent-primary) 60%, transparent) 60%);
   box-shadow: 0 6px 20px color-mix(in oklab, var(--color-accent-primary) 40%, transparent);
+}
+.top-nav-hidden .main-nav,
+.top-nav-hidden .main-nav-slider {
+  display: none;
+}
+.desktop-only { display: inline-flex; }
+@media (max-width: 1100px) {
+  .sidebar { display: none; }
+  .top-nav-hidden .main-nav,
+  .top-nav-hidden .main-nav-slider { display: flex; }
+  .desktop-only { display: none; }
 }
 .status-indicator.running { background: #16a34a !important; }
 .status-indicator.stopped { background: #e11d48 !important; }
@@ -259,4 +333,3 @@ select, textarea {
   background: #ffffff;
 }
 [data-theme="light"] .scrollable-table-container { background: #fafafa; }
-
