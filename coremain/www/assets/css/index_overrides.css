@@ -1,0 +1,262 @@
+/* Mosdns Dashboard Index Overrides
+   目标：在保持既有 DOM 结构与功能（log.js 全部复用）的前提下，显著提升观感与布局。
+   注意：此文件在 log_refactored.css 之后引入，以便进行无侵入覆盖。 */
+
+:root {
+  --radius-lg: 14px;
+  --radius-md: 12px;
+  --radius-sm: 10px;
+  --shadow-1: 0 6px 18px rgba(0,0,0,.12), 0 2px 6px rgba(0,0,0,.08);
+  --shadow-2: 0 16px 40px rgba(0,0,0,.18), 0 3px 10px rgba(0,0,0,.08);
+  --card-bg: var(--color-bg);
+  --card-bg-alt: var(--color-bg-alt);
+  --border-soft: 1px solid color-mix(in oklab, var(--color-border) 70%, transparent);
+}
+
+/* 布局与排版基础 */
+html[data-layout="comfortable"] body {
+  letter-spacing: .1px;
+}
+.container {
+  max-width: 1280px;
+  padding-inline: clamp(12px, 3vw, 28px);
+}
+
+/* 顶部区域 */
+.page-header {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  backdrop-filter: saturate(1.2) blur(8px);
+  background: color-mix(in oklab, var(--color-bg) 86%, transparent);
+  border-bottom: var(--border-soft);
+  padding-top: .8rem;
+  padding-bottom: .6rem;
+}
+.page-header h1 {
+  font-size: clamp(1.05rem, 2.3vw, 1.25rem);
+  font-weight: 700;
+  letter-spacing: .3px;
+}
+.header-main-actions {
+  gap: .6rem;
+}
+.refresh-btn {
+  border-radius: 999px;
+  background: var(--card-bg);
+  box-shadow: var(--shadow-1);
+}
+
+/* 主导航 */
+.nav-wrapper {
+  border-radius: 999px;
+  padding: 2px;
+  background:
+    linear-gradient( to right,
+      color-mix(in oklab, var(--color-accent-primary) 18%, transparent),
+      transparent 35%,
+      color-mix(in oklab, var(--color-accent-primary) 18%, transparent)
+    );
+}
+.main-nav {
+  gap: .25rem;
+  background: var(--card-bg);
+  border-radius: 999px;
+  padding: 2px;
+  position: relative;
+}
+.main-nav .tab-link {
+  border-radius: 999px;
+  padding: .5rem .9rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+.main-nav .tab-link.active {
+  color: var(--color-accent-text);
+}
+.main-nav-slider {
+  border-radius: 999px;
+  background: linear-gradient(135deg,
+    color-mix(in oklab, var(--color-accent-primary) 86%, transparent),
+    color-mix(in oklab, var(--color-accent-primary) 60%, transparent) 60%);
+  box-shadow: 0 6px 20px color-mix(in oklab, var(--color-accent-primary) 40%, transparent);
+}
+.status-indicator.running { background: #16a34a !important; }
+.status-indicator.stopped { background: #e11d48 !important; }
+
+/* 卡片与网格通用 */
+.card {
+  border-radius: var(--radius-lg);
+  border: var(--border-soft);
+  background: var(--card-bg);
+  box-shadow: var(--shadow-1);
+}
+.card-header {
+  border-bottom: var(--border-soft);
+  padding: .95rem 1.1rem;
+}
+.card-body {
+  padding: 1rem 1.1rem 1.1rem;
+}
+
+.stats-grid {
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+}
+.stat-card {
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-1);
+  overflow: hidden;
+}
+.stat-card .value {
+  font-size: clamp(1.6rem, 4vw, 2.1rem);
+  font-weight: 800;
+}
+.stat-card .stat-card-content { padding: 1.1rem 1.15rem 1rem; }
+.sparkline-container { opacity: .9; }
+
+.overview-grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 1rem;
+  margin-top: 1rem;
+}
+#top-domains-card { grid-column: span 6; }
+#top-clients-card { grid-column: span 6; }
+#slowest-queries-card { grid-column: span 7; }
+#shunt-results-card { grid-column: span 5; }
+@media (max-width: 1100px) {
+  #top-domains-card, #top-clients-card, #slowest-queries-card, #shunt-results-card { grid-column: 1/-1; }
+}
+
+/* 表格改良：粘性表头 + 行悬浮 */
+.scrollable-table-container {
+  --h: 52px;
+  border-radius: var(--radius-md);
+  overflow: clip;
+  border: var(--border-soft);
+  background: var(--card-bg-alt);
+}
+.scrollable-table-container table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: linear-gradient(to bottom, color-mix(in oklab, var(--card-bg) 92%, transparent), transparent);
+  backdrop-filter: blur(4px);
+}
+.mobile-card-layout tbody tr {
+  transition: background .2s ease;
+}
+.mobile-card-layout tbody tr:hover {
+  background: color-mix(in oklab, var(--color-accent-primary) 12%, transparent);
+}
+
+/* 按钮与开关 */
+.button.primary {
+  border-radius: 10px;
+  box-shadow: 0 8px 20px color-mix(in oklab, var(--color-accent-primary) 28%, transparent);
+}
+.button.secondary {
+  border-radius: 10px;
+}
+.button.danger {
+  border-radius: 10px;
+}
+.segmented-control .button.active {
+  box-shadow: 0 8px 20px color-mix(in oklab, var(--color-accent-primary) 28%, transparent);
+}
+
+/* 模块：系统控制页 */
+.control-panel-grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 1rem;
+}
+.control-module {
+  border-radius: var(--radius-lg);
+  border: var(--border-soft);
+  background: var(--card-bg);
+  box-shadow: var(--shadow-1);
+  padding: 1rem 1.1rem 1.1rem;
+}
+.control-module--mini { grid-column: span 4; }
+#auto-refresh-module { grid-column: span 4; }
+#appearance-module { grid-column: span 4; }
+#domain-stats-module { grid-column: 1 / -1; }
+#system-info-module { grid-column: 1 / -1; }
+#update-module { grid-column: 1 / -1; }
+#requery-module { grid-column: 1 / -1; }
+#feature-switches-module { grid-column: 1 / -1; }
+#overrides-module { grid-column: 1 / -1; }
+@media (max-width: 1100px) {
+  .control-module--mini, #auto-refresh-module, #appearance-module { grid-column: 1 / -1; }
+}
+
+/* 模态框 */
+dialog.card {
+  border-radius: var(--radius-lg);
+  border: var(--border-soft);
+  box-shadow: var(--shadow-2);
+}
+.modal-header {
+  border-bottom: var(--border-soft);
+}
+.modal-footer {
+  border-top: var(--border-soft);
+}
+
+/* Toast */
+#toast {
+  border-radius: 12px;
+  box-shadow: var(--shadow-2);
+}
+
+/* donut 图表容器微调 */
+.donut-chart-wrapper {
+  gap: 1.1rem;
+}
+.donut-chart-center-text .total {
+  font-size: clamp(1.2rem, 3.4vw, 1.6rem);
+  font-weight: 800;
+}
+
+/* 细节：标签、芯片、徽章 */
+.chip, .badge {
+  border-radius: 999px !important;
+  box-shadow: 0 2px 10px rgba(0,0,0,.1);
+}
+.rule-tag {
+  border-radius: 999px;
+  font-weight: 700;
+  padding: .18rem .55rem;
+}
+
+/* 表单与输入 */
+input[type="search"],
+input[type="text"],
+input[type="url"],
+input[type="number"],
+input[type="datetime-local"],
+select, textarea {
+  border-radius: 10px !important;
+  border: var(--border-soft) !important;
+  background: var(--card-bg) !important;
+}
+
+/* Requery 进度条精修（与内联样式互补） */
+.requery-progress-bar {
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
+}
+.requery-progress-bar-fill {
+  background-image: linear-gradient(90deg,
+    color-mix(in oklab, var(--color-accent-primary) 82%, transparent),
+    color-mix(in oklab, var(--color-accent-primary) 55%, transparent));
+}
+
+/* 暗色与亮色兼容性 */
+[data-theme="light"] .card,
+[data-theme="light"] .control-module {
+  background: #ffffff;
+}
+[data-theme="light"] .scrollable-table-container { background: #fafafa; }
+
