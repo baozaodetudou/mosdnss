@@ -61,34 +61,66 @@
         }
     </style>
 </head>
-<body>
+<body class="side-layout">
     <div id="initial-loader"><div class="spinner"></div></div>
     <div id="answers-tooltip"></div>
 
-    <main class="container">
-        <header class="page-header">
-            <h1>Mosdns 仪表盘</h1>
-            <div class="header-main-actions">
-                <div class="nav-wrapper">
-                    <nav class="main-nav">
-                        <div class="main-nav-slider"></div>
-                        <a href="#overview" class="tab-link active" data-tab="overview" role="tab">概览</a>
-                        <a href="#log-query" class="tab-link" data-tab="log-query" role="tab">查询日志</a>
-                        <a href="#rules" class="tab-link" data-tab="rules" role="tab">规则管理</a>
-                        <a href="#system-control" class="tab-link" data-tab="system-control" role="tab">
-                            <span class="status-indicator"></span>
-                            <span>系统</span>
-                        </a>
-                    </nav>
+    <div class="app-shell">
+        <aside class="sidebar">
+            <div class="side-header">
+                <div class="brand">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2Zm0 3a7 7 0 1 1 0 14A7 7 0 0 1 12 5Zm-1 2h2v6h-2V7Zm0 8h2v2h-2v-2Z"/></svg>
+                    <span class="brand-text">Mosdns</span>
                 </div>
-                <span id="last-updated" class="last-updated"></span>
                 <button id="global-refresh-btn" class="refresh-btn" title="刷新数据" aria-label="刷新数据" aria-busy="false">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.3"/></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.3"/></svg>
                 </button>
             </div>
-        </header>
+            <nav class="side-nav" aria-label="主导航">
+                <a href="#overview" class="tab-link side-tab-link active" data-tab="overview" role="tab">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+                    <span>概览</span>
+                </a>
+                <a href="#log-query" class="tab-link side-tab-link" data-tab="log-query" role="tab">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                    <span>查询日志</span>
+                </a>
+                <a href="#rules" class="tab-link side-tab-link" data-tab="rules" role="tab">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M3 5h18v2H3zm2 4h14v10l-7-3-7 3V9z"/></svg>
+                    <span>规则管理</span>
+                </a>
+                <a href="#system-control" class="tab-link side-tab-link" data-tab="system-control" role="tab">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M19.14,12.94a7.43,7.43,0,0,0,.05-.94,7.43,7.43,0,0,0-.05-.94l2.11-1.65a.5.5,0,0,0,.12-.64L19.75,5.27a.5.5,0,0,0-.6-.22l-2.49,1a7.28,7.28,0,0,0-1.63-.94l-.38-2.65A.5.5,0,0,0,14.16,2H9.84a.5.5,0,0,0-.49.41L8.97,5.06A7.28,7.28,0,0,0,7.34,6l-2.49-1a.5.5,0,0,0-.6.22L2.63,8.77a.5.5,0,0,0,.12.64L4.86,11.06a7.43,7.43,0,0,0-.05.94,7.43,7.43,0,0,0,.05.94L2.75,14.59a.5.5,0,0,0-.12.64l1.62,3.5a.5.5,0,0,0,.6.22l2.49-1a7.28,7.28,0,0,0,1.63.94l.38,2.65a.5.5,0,0,0,.49.41h4.32a.5.5,0,0,0,.49-.41l.38-2.65a7.28,7.28,0,0,0,1.63-.94l2.49,1a.5.5,0,0,0,.6-.22l1.62-3.5a.5.5,0,0,0-.12-.64ZM12,15.5A3.5,3.5,0,1,1,15.5,12,3.5,3.5,0,0,1,12,15.5Z"/></svg>
+                    <span>系统</span>
+                </a>
+                <div class="side-foot">
+                    <span class="side-updated">上次更新 <span id="last-updated"></span></span>
+                </div>
+            </nav>
+        </aside>
 
-        <div id="toast" role="status" aria-live="polite"></div>
+        <main class="content">
+            <header class="page-header">
+                <h1>Mosdns 仪表盘</h1>
+                <div class="header-main-actions">
+                    <!-- 保留原主导航（供脚本与键盘无障碍），大屏隐藏，可在小屏显示为顶部标签 -->
+                    <div class="nav-wrapper top-nav-hidden">
+                        <nav class="main-nav">
+                            <div class="main-nav-slider"></div>
+                            <a href="#overview" class="tab-link active" data-tab="overview" role="tab">概览</a>
+                            <a href="#log-query" class="tab-link" data-tab="log-query" role="tab">查询日志</a>
+                            <a href="#rules" class="tab-link" data-tab="rules" role="tab">规则管理</a>
+                            <a href="#system-control" class="tab-link" data-tab="system-control" role="tab">
+                                <span class="status-indicator"></span>
+                                <span>系统</span>
+                            </a>
+                        </nav>
+                    </div>
+                    <span id="last-updated" class="last-updated desktop-only"></span>
+                </div>
+            </header>
+
+            <div id="toast" role="status" aria-live="polite"></div>
 
         <dialog id="log-detail-modal" class="card">
             <header class="modal-header">
@@ -707,8 +739,42 @@
 
             </div>
         </section>
-    </main>
-    
+        </main>
+    </div>
+
     <script src="assets/js/log.js"></script>
+    <script>
+    // 侧边栏与顶部主导航联动：点击侧边栏，转而触发顶部同名 tab 的点击，这样无需改动现有 log.js 的导航/slider 逻辑。
+    (function() {
+      const sideLinks = document.querySelectorAll('.side-nav .tab-link');
+      const topLinks = document.querySelectorAll('.main-nav .tab-link');
+      const byTab = (list) => Object.fromEntries(Array.from(list).map(a => [a.dataset.tab, a]));
+      const topMap = byTab(topLinks);
+
+      function activateSide(tab) {
+        sideLinks.forEach(l => l.classList.toggle('active', l.dataset.tab === tab));
+      }
+
+      sideLinks.forEach(link => {
+        link.addEventListener('click', (e) => {
+          e.preventDefault();
+          const tab = link.dataset.tab;
+          const top = topMap[tab];
+          if (top) top.click();
+          activateSide(tab);
+        });
+      });
+
+      // 页面初始载入根据 URL hash 设定侧边栏高亮
+      const initialHash = (location.hash || '#overview').replace('#', '');
+      activateSide(initialHash);
+
+      // 监听浏览器前进后退，保持侧边栏同步
+      window.addEventListener('popstate', () => {
+        const hash = (location.hash || '#overview').replace('#','');
+        activateSide(hash);
+      });
+    })();
+    </script>
 </body>
 </html>
