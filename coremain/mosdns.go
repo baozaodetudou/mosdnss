@@ -301,17 +301,17 @@ func (m *Mosdns) initHttpMux() {
 		}
 	}
 
-	// [新增] index 路由 (\"/index\") 的 handler, 指向 /www/index.html
+	// [新增] index 路由 ("/index") 的 handler, 指向 /www/index.html
 	indexHandler := func(w http.ResponseWriter, r *http.Request) {
-		data, err := content.ReadFile(\"www/index.html\")
+		data, err := content.ReadFile("www/index.html")
 		if err != nil {
-			m.logger.Error(\"Error reading embedded file\", zap.String(\"file\", \"www/index.html\"), zap.Error(err))
-			http.Error(w, \"Error reading the embedded file\", http.StatusInternalServerError)
+			m.logger.Error("Error reading embedded file", zap.String("file", "www/index.html"), zap.Error(err))
+			http.Error(w, "Error reading the embedded file", http.StatusInternalServerError)
 			return
 		}
-		w.Header().Set(\"Content-Type\", \"text/html; charset=utf-8\")
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		if _, err := w.Write(data); err != nil {
-			m.logger.Error(\"Error writing response\", zap.Error(err))
+			m.logger.Error("Error writing response", zap.Error(err))
 		}
 	}
 
