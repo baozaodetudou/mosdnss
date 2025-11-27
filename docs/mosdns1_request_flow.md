@@ -106,6 +106,32 @@
 - `domain_output` 通过 `domain_set_url` 回写 `gen/*.txt` 到 API，实现在线更新列表。
 - `/api/v1/update/*`、`/api/v1/system/*` 提供状态查询，与当前流程无直接耦合。
 
+### 2.7 `google.com` 场景
+`google.com` 位于 `rule/greylist.txt`，默认会触发假 IP 流程。但在进入主分流前，还要考虑入口白名单：
+
+1. **默认行为（未登记 client IP）**
+   - `switch2=A` 且 `client_ip.txt` 为空 ⇒ 在 `sequence_6666` 中命中 `!client_ip $client_ip`，设置 `mark3`。
+   - `mark3` 立即执行 `$sequence_local` 并 `accept`，整个过程与 `baidu.com` 类似，只是结果来自国内上游，不会触发 `greylist`。
+   - 若要观察完整分流，需要把发起机的 IP 写入 `client_ip.txt`（或将 `switch2` 改为 `B`），然后重启 mosdns 让配置生效。
+
+2. **放行客户端后的灰名单路径**
+   - 请求会命中 `cache_all` → miss → 进入 `sequence_main`。
+   - `qname $greylist` 使 `mark22` 为真，并立即执行 `$sequence_fakeip`：
+     1. `sequence_fakeip` 是 `fallback`，primary/secondary 都是 `sequence_fakeip_single`；后者 `drop_resp` 后调用 `$forward_fakeip`（`udp://127.0.0.1:6666`，通常接入 sing-box/mihomo）。
+     2. fakeip upstream 返回的黑洞响应触发 `resp_ip 127.0.0.2 ::2` ⇒ `mark999`，紧接着 `mark777` 会把域名写入 `gen/fakeiplist.txt`（通过 `domain_output`）。
+     3. `mark777` 还会调用 `my_fakeiplist` 生成可复用规则；完成后 `mark22` 分支直接 `accept`，客户端收到 fakeip 答案。
+   - 因为 `mark22` 已 `accept`，`switch3` 控制的 not-in-list 流程不会再运行，所以只要 google 留在灰名单中，泄露/非泄露切换对它的 fakeip 处理没有影响。
+
+3. **移除灰名单或期望 real IP（与 `switch3` 相关）**
+   - 若将 google.com 暂时移出 `greylist`，它会像其他“列表外”域名一样落入 `sequence_not_in_list_leak` 或 `_noleak`，由 `switch3` 决定：
+
+| 模式 | 初始查询 | fallback | fakeip 标记 | 适用说明 |
+|------|----------|----------|-------------|----------|
+| 泄露 (`switch3=A`) | 优先 `$sequence_local`（国内） | 本地失败/污染 (`mark123`) 时转 `$sequence_google`；国外返回非 CN IP ⇒ `mark89` → `$sequence_fakeip` | `mark68`（列表外）+ `mark89`（fakeip） | 默认模式；适合希望“先国内再国外”的场景 |
+| 不泄露 (`switch3=B`) | 直接 `$sequence_google_node`（带 ECS） | `rcode 2/5` 时以 `$sequence_local` 兜底，并记录 `mark456` | `mark89` → `$sequence_fakeip`；仍会生成 fakeip 规则 | 适合想立即走国外/带 ECS 的节点。
+
+   - 现实中 google 往往返回非 CN IP，因而两种模式都会把 `mark89` 置为真并触发 fakeip；区别只在于“谁先查、何时兜底”。
+
 ## 3. 附录
 
 ### 3.1 `mark` 语义速查

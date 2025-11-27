@@ -21,6 +21,7 @@
 3. `sequence_main` 根据列表和动态标记（`mark 11/22/33/66/68/777/888/999`）在国内、fakeip、灰名单、realip 等序列间跳转。
 4. 末尾根据 `switch3` 决定走 `sequence_not_in_list_leak`（先国内后国外）或 `_noleak`（ECS+国外再兜底国内）。
 5. `switch4` 控制 Lazy Cache；`switch1` 控制黑名单；`switch7` 控制 AdGuard。
+- `docs/mosdns1_request_flow.md` 提供 `baidu.com` 与 `google.com` 两个完整示例，其中 `google` 场景详述了 `switch2` 白名单、`greylist`、`sequence_fakeip` 的联动。
 
 ### 需求: Web UI / API 交互
 - `api.http` 绑定 9099，`sub_config/webinfo.yaml` 为前端持久化空间。
