@@ -26,22 +26,33 @@ flowchart LR
     classDef effect stroke-dasharray:6 4,fill:#FFF7E0,stroke:#D97706,color:#7C2D12;
     classDef entry fill:#DBEAFE,stroke:#1D4ED8,color:#0F172A;
     classDef laneTitle fill:#F8F5FF,stroke:#C7B9FF,color:#4C1D95,font-size:40px,font-weight:600;
-    linkStyle default stroke:#4C1D95,stroke-width:3px,color:#4C1D95;
+    linkStyle default stroke:#4C1D95,stroke-width:2px;
 
     %% 入口泳道
     subgraph lane_entry["入口过滤（sequence_6666）"]
         direction TB
-        start([客户端请求 → :53]):::terminal --> qtype{switch6/5\nQTYPE 过滤}:::entry
-        qtype -- "禁止类型" --> drop_proto([拦截 AAAA / SOA / PTR / HTTPS]):::terminal
-        qtype -- "允许" --> ddns{域名 ∈ DDNS?}
+        start([客户端请求 → :53]):::terminal --> sw6{switch6 AAAA?}:::entry
+        sw6 -- "是 & AAAA" --> drop_v6([拦截 AAAA → NXDOMAIN]):::terminal
+        sw6 -- "否" --> sw5{switch5 SOA/PTR/HTTPS?}
+        sw5 -- "禁止类型" --> drop_qtype([屏蔽返回]):::terminal
+        sw5 -- "允许" --> ddns{域名 ∈ DDNS?}
         ddns -- "命中" --> local_ddns([国内查询 → 返回]):::terminal
-        ddns -- "未命中" --> threat_gate{黑名单 & 插件?}
-        threat_gate -- "黑名单" --> block_black([黑名单拦截]):::terminal
-        threat_gate -- "无V4/V6" --> block_nv([拦截无V4/无V6]):::terminal
-        threat_gate -- "AdGuard/广告" --> block_ad([实时/在线广告拦截]):::terminal
-        threat_gate -- "通过" --> client_gate{switch2 客户端白名单?}
-        client_gate -- "未授权" --> local_client([国内查询 → 返回]):::terminal
-        client_gate -- "授权" --> rewrite{域名 ∈ 重写清单?}
+        ddns -- "未命中" --> sw1{switch1 黑名单?}
+        sw1 -- "是" --> nv4{域名 ∈ 无V4?}
+        nv4 -- "是" --> block_nv4([拦截无V4]):::terminal
+        nv4 -- "否" --> nv6{域名 ∈ 无V6?}
+        nv6 -- "是" --> block_nv6([拦截无V6]):::terminal
+        nv6 -- "否" --> blocklist{域名 ∈ 黑名单?}
+        blocklist -- "是" --> block_black([黑名单拦截]):::terminal
+        blocklist -- "否" --> sw7{switch7 AdGuard?}
+        sw7 -- "开" --> adguard_plugin{AdGuard 插件命中?}
+        sw7 -- "关" --> sw2{switch2 客户端白名单?}
+        adguard_plugin -- "命中" --> block_ad([实时广告拦截]):::terminal
+        adguard_plugin -- "未命中" --> adguard_live{在线广告域?}
+        adguard_live -- "命中" --> block_ad2([在线广告拦截]):::terminal
+        adguard_live -- "未命中" --> sw2
+        sw2 -- "未授权客户端" --> local_client([国内查询 → 返回]):::terminal
+        sw2 -- "授权客户端" --> rewrite{域名 ∈ 重写清单?}
         rewrite -- "命中" --> rewrite_up([rewrite 上游查询 → 返回]):::terminal
         rewrite -- "未命中" --> type_gate{查询类型 ∈ A/AAAA?}
         type_gate -- "否" --> geo_mark{域名 ∈ geosite_cn?}
@@ -54,21 +65,22 @@ flowchart LR
     subgraph lane_lists["主分流 / 名单"]
         direction TB
         stage_lists --> greylist{域名 ∈ 灰名单?}
-        greylist -- "命中" --> fakeip_grey([fakeip (sing-box)]):::terminal
+        greylist -- "命中" --> fakeip_grey(["fakeip (sing-box)"]):::terminal
         greylist -- "未命中" --> whitelist{域名 ∈ 白名单?}
         whitelist -- "是" --> white_lookup([白名单国内查询])
         white_lookup --> white_record([补 nov4/nov6 或写入无Vx]):::effect
         white_record --> white_cnmihomo{CNtoMihomo?}
-        white_cnmihomo -- "是" --> fakeip_mihomo([fakeip (mihomo)]):::terminal
+        white_cnmihomo -- "是" --> fakeip_mihomo(["fakeip (mihomo)"]):::terminal
         white_cnmihomo -- "否" --> realip_return([返回 real IP]):::terminal
-        whitelist -- "否" --> list_split{自/在线清单命中?}
-        list_split -- "国外清单" --> fakeip_foreign([fakeip (sing-box)]):::terminal
-        list_split -- "国内清单" --> local_cn_scan([国内查询 real IP])
-        list_split -- "均未命中" --> mode_entry[[进入模式决策]]
+        whitelist -- "否" --> gen_list{域名 ∈ 自/在线国外清单?}
+        gen_list -- "是" --> fakeip_foreign(["fakeip (sing-box)"]):::terminal
+        gen_list -- "否" --> gen_cn{域名 ∈ 自/在线国内清单?}
+        gen_cn -- "是" --> local_cn_scan([国内查询 real IP])
+        gen_cn -- "否" --> mode_entry[[进入模式决策]]
         local_cn_scan --> cn_result{国内结果判断}
-        cn_result -- "命中 17.0.0.0/8" --> add_cn_gen([加入自生成国内]):::effect
-        cn_result -- "rcode0 无AAAA" --> add_nv6_cn([写入无V6]):::effect
-        cn_result -- "rcode0 无A" --> add_nv4_cn([写入无V4]):::effect
+        cn_result -. "命中 17.0.0.0/8" .-> add_cn_gen([加入自生成国内]):::effect
+        cn_result -. "rcode0 无IP/rcode3 & AAAA" .-> add_nv6_cn([写入无V6]):::effect
+        cn_result -. "rcode0 无IP/rcode3 & A" .-> add_nv4_cn([写入无V4]):::effect
         cn_result --> cn_need_mode{仍需模式判断?}
         cn_need_mode -- "否" --> realip_return
         cn_need_mode -- "是" --> mode_entry
@@ -83,7 +95,9 @@ flowchart LR
             compat[国内查询结果]
             mode -- "兼容" --> compat
             compat -- "rcode0 无AAAA 或 rcode3" --> add_nv6_compat([记录无V6 → 返回国内]):::effect
-            compat -- "rcode0 无A" --> add_nv4_compat([记录无V4 → 返回]):::effect
+            compat -- "rcode0 无A" --> retry_intl([国外补查])
+            retry_intl -. "补查成功" .-> compat
+            retry_intl -- "仍无V4" --> add_nv4_compat([记录无V4 → 返回]):::effect
             compat -- "IP 非中国" --> fakeip_foreign
             compat -- "IP 属中国" --> compat_cnmihomo{CNtoMihomo?}
             compat_cnmihomo -- "是" --> fakeip_mihomo
@@ -94,7 +108,9 @@ flowchart LR
             secure[国外查询结果]
             mode -- "安全" --> secure
             secure -- "rcode0 无AAAA 或 rcode3" --> add_nv6_secure([记录无V6 → 返回国外]):::effect
-            secure -- "rcode0 无A" --> add_nv4_secure([记录无V4 → 返回]):::effect
+            secure -- "rcode0 无A" --> retry_domestic([国内补查])
+            retry_domestic -. "补查成功" .-> secure
+            retry_domestic -- "仍无V4" --> add_nv4_secure([记录无V4 → 返回]):::effect
             secure -- "IP 非中国" --> fakeip_foreign
             secure -- "IP 属中国" --> secure_cnmihomo{CNtoMihomo?}
             secure_cnmihomo -- "是" --> fakeip_mihomo
@@ -105,13 +121,13 @@ flowchart LR
     %% 副作用泳道
     subgraph lane_effects["副作用 / 列表更新"]
         direction TB
-        list_split -. "在线国外但未在自生成" .-> add_foreign_gen([加入自生成国外]):::effect
+        gen_list -. "在线国外但未在自生成" .-> add_foreign_gen([加入自生成国外]):::effect
     end
 
     %% 终态聚合
     subgraph lane_end["终态"]
         direction TB
-        drop_proto & block_black & block_ad & block_nv --> end_block([终止 / NXDOMAIN]):::terminal
+        drop_v6 & drop_qtype & block_nv4 & block_nv6 & block_black & block_ad & block_ad2 --> end_block([终止 / NXDOMAIN]):::terminal
         local_ddns & local_client & rewrite_up & local_others & intl_others --> end_real([返回 real IP]):::terminal
         fakeip_grey & fakeip_foreign & fakeip_mihomo --> end_fakeip([返回 fake IP]):::terminal
         realip_return --> end_real

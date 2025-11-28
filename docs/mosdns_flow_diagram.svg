@@ -12,15 +12,15 @@
       .node tspan { font-size: 24px; fill: #334155; }
       .terminal rect { fill: #4C1D95; stroke: #31186E; }
       .terminal text, .terminal tspan { fill: #FFFFFF; }
-      .arrow { stroke: #4C1D95; stroke-width: 6; fill: none; marker-end: url(#arrow); }
+      .arrow { stroke: #4C1D95; stroke-width: 4; fill: none; marker-end: url(#arrow); }
       .arrow-label { font-size: 22px; fill: #4C1D95; font-weight: 600; }
     </style>
     <linearGradient id="bg" x1="0%" y1="0%" x2="0%" y2="100%">
       <stop offset="0%" stop-color="#EEF2FF" />
       <stop offset="100%" stop-color="#FFFFFF" />
     </linearGradient>
-    <marker id="arrow" markerWidth="20" markerHeight="20" refX="14" refY="10" orient="auto">
-      <path d="M0,0 L20,10 L0,20 Z" fill="#4C1D95" />
+    <marker id="arrow" markerWidth="16" markerHeight="16" refX="11" refY="8" orient="auto">
+      <path d="M0,0 L16,8 L0,16 Z" fill="#4C1D95" />
     </marker>
   </defs>
   <rect class="bg" width="1400" height="1600"/>
