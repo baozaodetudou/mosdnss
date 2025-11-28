@@ -26,3 +26,5 @@ testutils/
 demo/
 /.playwright-mcp/
 /.spec-workflow/
+helloagents/
+/.lh/.lhignore
