@@ -6,7 +6,7 @@
 ## 模块概述
 - **职责:** 通过 `config.yaml` + `sub_config/` 组织大量插件，提供 53 端口服务与 Web UI。
 - **状态:** 🚧 开发中（需要依据部署环境调整上游、SOCKS5、开关文件）
-- **最后更新:** 2025-11-27
+- **最后更新:** 2025-11-28
 
 ## 规范
 ### 需求: 启动 Demo 服务
@@ -38,6 +38,8 @@
 
 ## 参考资料
 - [docs/mosdns1_request_flow.md](../../docs/mosdns1_request_flow.md): 详细描述 `start --dir demo/mosdns1` 后一次查询的分层流程、标记与开关含义，是排查实际请求路径的首选文档。
+- [docs/mosdns_request_flow.svg](../../docs/mosdns_request_flow.svg): demo 请求流程图，覆盖入口过滤、名单落点、兼容/安全模式分支，可配合 `.mmd` 源文件重建图形。
+- [docs/mosdns_request_flow.mmd](../../docs/mosdns_request_flow.mmd): Mermaid 源文件，运行 `npx @mermaid-js/mermaid-cli -i docs/mosdns_request_flow.mmd -o docs/mosdns_request_flow.svg` 可再生成 SVG。
 
 ## 变更历史
 - 202511270000_init_kb: 初始化知识库记录。

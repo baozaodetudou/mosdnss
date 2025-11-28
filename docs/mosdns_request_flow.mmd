@@ -1,0 +1,81 @@
+%% mosdns demo 请求流程（入口→主分流→名单→模式）
+flowchart TB
+    subgraph Ingress[入口过滤（sequence_6666）]
+        direction TB
+        start["客户端查询 -> :53"] --> sw6{switch6 屏蔽 AAAA?}
+        sw6 -- 是 & AAAA --> drop_v6["拦截 AAAA 并返回 NXDOMAIN"]
+        sw6 -- 否 或 非 AAAA --> sw5{switch5 屏蔽 SOA/PTR/HTTPS?}
+        sw5 -- 是 & qtype∈{SOA,PTR,HTTPS} --> drop_qtype["屏蔽并结束"]
+        sw5 -- 否 --> ddns{域名 ∈ DDNS 列表?}
+        ddns -- 是 --> local_ddns["转国内上游 -> 返回 real IP"]
+        ddns -- 否 --> sw1{switch1 开启黑名单?}
+        sw1 -- 否 --> sw7
+        sw1 -- 是 --> nv4{域名 ∈ 无V4?}
+        nv4 -- 是 --> block_nv4["屏蔽并记录"]
+        nv4 -- 否 --> nv6{域名 ∈ 无V6?}
+        nv6 -- 是 --> block_nv6["屏蔽并记录"]
+        nv6 -- 否 --> blocklist{域名 ∈ 黑名单?}
+        blocklist -- 是 --> block_black["屏蔽并结束"]
+        blocklist -- 否 --> sw7{switch7 广告拦截?}
+        sw7 -- 是 & 广告域 --> block_ad["屏蔽广告"]
+        sw7 -- 否 或未命中 --> sw2{switch2 客户端白名单?}
+        sw2 -- 开启且客户端∉名单 --> local_client["直接国内查询 -> 返回"]
+        sw2 -- 客户端允许 --> adguard_retry{广告列表再判?}
+        adguard_retry -- 命中 --> block_ad2["返回 NXDOMAIN"]
+        adguard_retry -- 未命中 --> rewrite{域名 ∈ 重定向列表?}
+        rewrite -- 是 --> rewrite_up["rewrite 上游查询 -> 返回"]
+        rewrite -- 否 --> type_check{qtype 属于 A/AAAA?}
+        type_check -- 否 --> geo_mark{域名 ∈ geosite_cn?}
+        geo_mark -- 是 --> local_others["国内查询 -> 返回 real IP"]
+        geo_mark -- 否 --> intl_others["国外查询 -> 返回 real IP"]
+        type_check -- 是 --> greylist{域名 ∈ 灰名单?}
+        greylist -- 是 --> fakeip_grey["fakeip (sing-box) -> 返回"]
+        greylist -- 否 --> whitelist{域名 ∈ 白名单?}
+    end
+
+    subgraph Mainflow[主分流与名单]
+        direction TB
+        whitelist -- 是 --> whitelist_path["国内查询 -> 记录 nov4/nov6<br/>缺少对应记录 -> 写入无V4/无V6<br/>可选: CNtoMihomo fakeip"]
+        whitelist -- 否 --> gen_list{域名 ∈ 自生成/在线国外清单?}
+        gen_list -- 是 --> fakeip_foreign["fakeip (sing-box) -> 返回"]
+        gen_list -- 否 --> gen_cn{域名 ∈ 自生成/在线国内清单?}
+        gen_cn -- 是 --> local_cn_prelude["国内查询 real IP 用于判断"]
+        gen_cn -- 否 --> mode{模式选择?}
+    end
+
+    subgraph Mode[兼容 vs 安全模式]
+        direction TB
+        mode -- 兼容 --> compat{国内查询结果}
+        compat -- rcode0 无AAAA 或 rcode3 --> add_nv6_compat["记录无V6 -> 返回国内结果"]
+        compat -- rcode0 无A (V4查询) --> retry_intl["国外补查 real IP"]
+        retry_intl -- 仍无V4 --> add_nv4_compat["记录无V4 -> 返回"]
+        compat -- 返回 IP 非中国 --> fakeip_foreign
+        compat -- 返回 IP 属中国 --> compat_cn2{CNtoMihomo 开启?}
+        compat_cn2 -- 是 --> fakeip_mihomo["fakeip (mihomo) -> 返回"]
+        compat_cn2 -- 否 --> realip_return["返回国内 real IP"]
+
+        mode -- 安全 --> secure{国外查询结果}
+        secure -- rcode0 无AAAA 或 rcode3 --> add_nv6_secure["记录无V6 -> 返回国外结果"]
+        secure -- rcode0 无A (V4查询) --> retry_domestic["国内补查 real IP"]
+        retry_domestic -- 仍无V4 --> add_nv4_secure["记录无V4 -> 返回"]
+        secure -- 返回 IP 非中国 --> fakeip_foreign
+        secure -- 返回 IP 属中国 --> secure_cn2{CNtoMihomo 开启?}
+        secure_cn2 -- 是 --> fakeip_mihomo
+        secure_cn2 -- 否 --> realip_return
+    end
+
+    subgraph Aftermath[自生成列表更新]
+        direction TB
+        local_cn_prelude --> cn_result{国内查询结果}
+        cn_result -- 命中 17.0.0.0/8 且未在列表 --> add_cn_gen["加入自生成国内列表"]
+        cn_result -- rcode0 无IP/rcode3 & AAAA --> add_nv6_cn["写入无V6"]
+        cn_result -- rcode0 无IP/rcode3 & A --> add_nv4_cn["写入无V4"]
+        cn_result --> mode
+        gen_list -- 未在自生成国外但命中在线国外 --> add_foreign_gen["加入自生成国外列表"]
+    end
+
+    %% 终态
+    drop_v6 & drop_qtype & block_nv4 & block_nv6 & block_black & block_ad & block_ad2 --> end_block["终止 / 返回 NXDOMAIN"]
+    local_ddns & local_client & rewrite_up & local_others & intl_others --> realip_return
+    fakeip_grey & fakeip_foreign & fakeip_mihomo --> end_fakeip["返回 fake IP"]
+    realip_return --> end_real["返回 real IP"]
