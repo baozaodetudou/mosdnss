@@ -31,105 +31,82 @@
 
 ### 2.1 客户端 → 入口
 1. `nslookup` 通过 UDP 53 将请求发往 `127.0.0.1`。
-2. 监听器 `udp_all` 接收报文，交给 `sequence_6666`。
+2. `udp_all`/`tcp_all` 监听 `:53`，将报文送入 `sequence_6666`。
+3. `sequence_6666` 会同步写审计日志，便于复盘所有过滤/标记。
 
-### 2.2 `sequence_6666` 关键步骤
+### 2.2 `sequence_6666` 顺序判定
 > 默认开关值来自 `rule/switch*.txt`：`switch1=B`、`switch2=A`、`switch3=A`、`switch4=A`、`switch5=A`、`switch6=B`、`switch7=A`。
 
-1. **协议过滤**：
-   - 若 `switch6=A` 时屏蔽 AAAA (`qtype 28`)；但默认 `B`，所以允许 AAAA。
-   - `switch5=A`，禁止 `SOA/PTR/HTTPS`（qtype 6/12/65），与当前查询无关。
-2. **DDNS 特例**：命中 `$ddnslist` 时 `mark 1` 并走 `$forward_local`，本例未命中。
-3. **黑名单/空记录**：`switch1=B` ⇒ 不触发 `mark 2`，后续 blocklist 判断被跳过。
-4. **AdGuard**：`switch7=A` + `$adguard` 列表时直接 `reject 3`；`baidu.com` 不在列表。
-5. **客户端放行**：
-   - `switch2=A` 且 `client_ip.txt` 默认为空 ⇒ `!client_ip $client_ip` 为真。
-   - 设置 `mark 3`，立即执行 `$sequence_local`，随后 `accept`。
-   - 因此在默认 demo 下，本地 `nslookup` 会在入口就被国内序列终止，后续 `cache_all`/`sequence_main` 不参与。
-6. **（若客户端已列入白名单或将 switch2 置 B）后的路径**：
-   - `switch3` 与 `switch4` 决定是否走 `cache_all` 或 `cache_all_noleak`。
-   - 缓存未命中时落到 `$sequence_all`，进而进入 `sequence_main`。
+| 步骤 | 触发条件 | 动作 | 备注 |
+|------|----------|------|------|
+| 1. 屏蔽 AAAA | `switch6=A` 且 `qtype=AAAA` | 直接 `reject` (NXDOMAIN) | 对标“屏蔽 IPv6 解析”。默认 `B` 不拦截。 |
+| 2. 屏蔽特殊类型 | `switch5=A` 且 `qtype ∈ {SOA, PTR, HTTPS}` | `reject` | 即指令中的 SOA/PTR/HTTPS 屏蔽。 |
+| 3. DDNS 优先 | `qname ∈ $ddnslist` | 标记 `mark1` → `$forward_local` → 返回 | 满足“直接走国内 DNS 并结束”。 |
+| 4. 黑名单过滤 | `switch1=A` | 依次检查 `nov4list`、`nov6list`、`blocklist`，命中即 `reject` | 对应“无 V4/V6/黑名单”三步判定。 |
+| 5. AdGuard | `switch7=A` | 先查本地 `$adguard`，再查在线广告列表；命中即 `reject` | 说明文中两次提及的“在线广告域名”合并于此。 |
+| 6. 客户端白名单 | `switch2=A` 且 `client_ip.txt` 不含当前源 IP | 设置 `mark3`，强制 `$sequence_local`，随后 `accept` | 仅允许名单内客户端走后续完整分流。 |
+| 7. rewrite & 类型检查 | 见 §2.3 | 继续深入主分流前的最后一步。 |
 
-> **提示**：若希望真实体验多层分流，可将 `rule/switch2.txt` 改为 `B` 或在 `client_ip.txt` 中写入发起机的局域网 IP，然后重新启动。
+> 若希望体验完整分流，可把发起端 IP 写入 `client_ip.txt` 或将 `switch2` 改为 `B` 并重启。
 
-### 2.3 `sequence_all` → `sequence_main`
-当请求进入主分流后，核心决策如下：
+### 2.3 `sequence_all` 进入 `sequence_main`
+1. **重写 (`exec: $rewrite`)**：命中 `rule/rewrite.txt` 则改写域名并立即查询 rewrite 上游，满足“重定向域名”需求。
+2. **类型分支**：
+   - **非 A/AAAA**：打 `mark66`，若 `geosite_cn` 匹配则标 `mark99` 并走 `$sequence_local`，否则视为国外域名，走 `$sequence_google`。
+   - **A/AAAA**：继续执行名单判定（灰/白名单、自生成/在线列表等）。
+3. **灰名单 (`$greylist`)**：`mark22` 直接触发 `sequence_fakeip`（sing-box fakeip），返回后写 `mark777`/`mark999` 并在 `gen/fakeiplist.txt` 记录。
+4. **白名单 (`$whitelist`)**：`mark11` → `$sequence_local`；若结果缺少 A 或 AAAA，分别写入 `nov4list`/`nov6list`；再检查 `CNtoMihomo`，决定是向 mihomo fakeip（国内代理）还是返回 real IP。
+5. **realip 列表 (`$realiplist`)**：`mark33` 直接改走 `$sequence_google`，确保特殊域名永远使用国外上游。
 
-1. **前置动作**：
-   - `exec: $rewrite` 根据 `rule/rewrite.txt` 重写域名（如需要）
-   - 如果上一步已有响应（缓存命中），直接 `accept`。
-2. **`mark 66` / `mark 99`**：非 A/AAAA 查询先打 `mark66`，再按 `$geosite_cn` 区分国内（`mark99`），继而走 `$sequence_local`。
-3. **灰名单/白名单**：
-   - `qname $greylist` ⇒ `mark22` ⇒ `sequence_fakeip`。
-   - `qname $whitelist` ⇒ `mark11` ⇒ `sequence_local`，并附带生成 `nov4/nov6` 规则。
-4. **realip 场景**：`qname $realiplist` ⇒ `mark33` ⇒ `sequence_google`（国外上游）。
-5. **生成/匹配黑洞 IP**：
-   - `exec: $gen_conc` 并发比对 geosite/domains，返回 `127.0.0.x/::x` 作为标签。
-   - `resp_ip 127.0.0.1` ⇒ `mark888`（国内） → `$sequence_local`。
-   - `resp_ip 127.0.0.2` ⇒ `mark999`（fakeip） → `$sequence_fakeip`。
-   - `resp_ip 127.0.0.3` ⇒ `mark666`（未命中列表） → 丢弃并转入 `$conc_lookup`，再根据结果选择本地或 fakeip。
-   - `mark777` 用于 fakeip 返回值的后续标注。
-6. **泄露/不泄露逻辑**：
-   - `switch3=A`（默认）调用 `sequence_not_in_list_leak`：表外域名先走国内、若异常再回落到 Google/FakeIP。
-   - `switch3=B` 调用 `sequence_not_in_list_noleak`：优先走带 ECS 的国外上游，再必要时国内兜底。
+### 2.4 自生成/在线清单与副作用
+1. **生成黑洞标签**：`exec: $gen_conc` 将 geosite/domains 匹配结果转换为 `127.0.0.x/::x`，并在 `resp_ip` 处置：
+   - `127.0.0.1` → `mark888`（认定为国内） → `$sequence_local`
+   - `127.0.0.2` → `mark999`（fakeip） → `$sequence_fakeip`
+   - `127.0.0.3` → `mark666`（未知） → 转 `$conc_lookup` 后根据真实 IP 决策。
+2. **自生成/在线名单写入**：
+   - 命中在线国外清单且不在自生成清单时，会追加到 `gen/foreignlist.txt`；国内同理写 `gen/domesticlist.txt`。
+   - 缺少 A/AAAA 时分别写入 `gen/nov4.txt`、`gen/nov6.txt`，用于后续无解析快速拦截。
+3. **FakeIP 与 mihomo**：`mark777` 会触发 `my_fakeiplist` 输出，可供 sing-box/mihomo 复用。若 `CNtoMihomo` 开启且域名判定为国内，将由 mihomo 负责 fakeip，国外域名仍交给 sing-box。
 
-对 `baidu.com`（属于 geosite_cn）的完整路径：
-1. `sequence_6666` 若未被 `switch2` 拦截，会命中 `cache_all`（启用）→ 无命中 → 进入 `sequence_main`。
-2. `gen_conc` 识别其为国内域名，写入 blackhole `127.0.0.1`。
-3. `mark888` 成立，直接转入 `$sequence_local`。
-4. `$sequence_local` 先走 `cache_cn` → miss → `forward_local`（223.5.5.5、221.130.33.60），返回结果后 `cname_remover` 清理尾部。
-5. 响应回写各层缓存（`cache_cn`、`cache_all`）并返回客户端。
+### 2.5 列表外域名与 `sequence_not_in_list_*`
+| 模式 | 初始动作 | 兜底逻辑 | fakeip 条件 |
+|------|----------|----------|-------------|
+| 泄露 (`sequence_not_in_list_leak`) | `mark68` → `$sequence_local`（国内） | 国内返回 rcode0 无 IP 或 rcode3 时打 `mark123`，转 `$sequence_google`；若最终 IP 不属中国 (`mark89`)，交给 `$sequence_fakeip` | `mark89` 成立即进入 fakeip；若 IP 属中国则继续本地 real IP 或 mihomo。 |
+| 不泄露 (`sequence_not_in_list_noleak`) | 直接 `$sequence_google_node`（带 ECS） | 国外查询 rcode2/5 用 `$sequence_local` 兜底并写 `mark456`；其余同上 | 同样通过 `mark89` 触发 fakeip。 |
 
-### 2.4 `sequence_not_in_list_*` 亮点
-- **泄露模式 (`_leak`)**：
-  1. 标记 `mark68` → 先走 `$sequence_local`。
-  2. 若无 IPv6/IPv4，生成 `nov6/nov4` 规则以供后续匹配。
-  3. `mark123` 代表本地返回为空/污染，触发 `$sequence_google` 重查。
-  4. 若最终 IP 不在 `$geoip_cn`，记 `mark89`，交给 `$sequence_fakeip`。
-- **不泄露模式 (`_noleak`)**：
-  1. 直接使用 `$sequence_google_node`（带 ECS）查询 8.8.8.8。
-  2. SERVFAIL (`rcode 2/5`) 时使用 `$sequence_local` 兜底。
-  3. 与泄露模式一样，最终根据 `mark89` 决定 fakeip 或 realip。
+### 2.6 兼容模式 vs 安全模式
+> 指令中的“兼容模式（国内优先）”与“安全模式（国外优先）”即 `switch3` 控制的两条泳道。
 
-### 2.5 缓存与上游行为
-- `cache_all*`：面向客户端的第一层缓存，`size=20M`，`lazy_cache_ttl=3 天`，会 dump 到 `cache_all*.dump`。
-- `cache_cn`, `cache_google`, `cache_google_node`, `cache_node`: 在对应序列中引用，保证国内/国外/节点解析可以离线延迟；`switch4=B` 时，仅节点缓存保留。
-- 上游：
-  - 国内：`forward_local` → `223.5.5.5` + `221.130.33.60`（第二条限时 300ms）。
-  - 国外：`forward_google` 通过 HTTPS DoH，走 `127.0.0.1:7891` SOCKS5。
-  - 国外（节点/ECS）：`forward_google_ecs` 强制携带 `ecs 2408:8214:213::1`。
-  - FakeIP：`forward_fakeip` 连接本机 6666 端口，可挂载 sing-box。
+#### 兼容模式（国内优先）
+1. 首次查询命中国内上游（含 `cache_cn`）。
+2. 若 `rcode0` 但无 AAAA，或 `rcode3`，将域名写入 `nov6list`；若 `rcode0` 无 A，则 fallback 到国外上游，再次失败则写入 `nov4list`。
+3. 国内返回的 IP 若不在中国网段，则 `mark89`→`sequence_fakeip`；若是中国 IP，则检查 `CNtoMihomo`：开启则交给 mihomo fakeip，否则直接返回 real IP。
 
-### 2.6 Web UI / API 交互点
-- `switch` 插件暴露 `/plugins/switchN/post` 接口，可在 Web UI 修改为 `A/B`。
-- `domain_output` 通过 `domain_set_url` 回写 `gen/*.txt` 到 API，实现在线更新列表。
-- `/api/v1/update/*`、`/api/v1/system/*` 提供状态查询，与当前流程无直接耦合。
+#### 安全模式（国外优先）
+1. 首次查询使用 `sequence_google_node`，强制携带国内 ECS（8.8.8.8 + ECS）。
+2. 若 `rcode0` 无 AAAA 或 `rcode3`，也将域名写入 `nov6list`；V4 缺失则 fallback 回国内 DNS，再失败写入 `nov4list`。
+3. 国外返回 IP 若不在中国，则直接 fakeip；若是中国 IP，再次查看 `CNtoMihomo` 决定由 mihomo fakeip 还是返回 real IP。
 
-### 2.7 `google.com` 场景
-`google.com` 位于 `rule/greylist.txt`，默认会触发假 IP 流程。但在进入主分流前，还要考虑入口白名单：
+### 2.7 `baidu.com` 与 `google.com` 场景
+- **`baidu.com`（国内域名）**：如未被 `switch2` 拦截，会落入 `sequence_main` → `gen_conc` 标记国内 → `mark888` → `$sequence_local` → 国内上游返回 → `cache_cn`/`cache_all` 回写 → 客户端得到 real IP。
+- **`google.com`（灰名单）**：默认因 `switch2=A` 被提前放行（直接国内查询结束）。若允许该客户端进入主分流，则：
+  1. `qname $greylist` → `mark22` → `sequence_fakeip`（sing-box fakeip，`mark777`/`mark999` 记录）。
+  2. 若移出灰名单，则作为“列表外”域名，按 `switch3` 选择泄露/不泄露模式，通常因返回 IP 非中国触发 `mark89` → fakeip。
 
-1. **默认行为（未登记 client IP）**
-   - `switch2=A` 且 `client_ip.txt` 为空 ⇒ 在 `sequence_6666` 中命中 `!client_ip $client_ip`，设置 `mark3`。
-   - `mark3` 立即执行 `$sequence_local` 并 `accept`，整个过程与 `baidu.com` 类似，只是结果来自国内上游，不会触发 `greylist`。
-   - 若要观察完整分流，需要把发起机的 IP 写入 `client_ip.txt`（或将 `switch2` 改为 `B`），然后重启 mosdns 让配置生效。
+### 2.8 缓存与上游回顾
+- **cache 层级**：`cache_all`（客户端第一层）、`cache_cn`/`cache_google`/`cache_node`/`cache_google_node`（分场景缓存），`switch4` 可整体关闭 lazy cache。
+- **上游映射**：
+  - 国内：`forward_local`（223.5.5.5、221.130.33.60，含 300ms 并行）
+  - 国外：`forward_google`（HTTPS DoH，经 127.0.0.1:7891 SOCKS5）
+  - 国外 ECS：`forward_google_ecs` 强制携带 `ecs 2408:8214:213::1`
+  - FakeIP：`forward_fakeip` 监听 `udp://127.0.0.1:6666`，通常接入 sing-box，若 `CNtoMihomo` 为 A，则国内 fakeip 交给 mihomo
+- **代理分工**：整体思路是“sing-box 负责国外域名 fakeip，mihomo 负责国内域名 fakeip（若开启 CNtoMihomo）”；两者使用不同 fakeip 网段，保证路由与策略可区分。
 
-2. **放行客户端后的灰名单路径**
-   - 请求会命中 `cache_all` → miss → 进入 `sequence_main`。
-   - `qname $greylist` 使 `mark22` 为真，并立即执行 `$sequence_fakeip`：
-     1. `sequence_fakeip` 是 `fallback`，primary/secondary 都是 `sequence_fakeip_single`；后者 `drop_resp` 后调用 `$forward_fakeip`（`udp://127.0.0.1:6666`，通常接入 sing-box/mihomo）。
-     2. fakeip upstream 返回的黑洞响应触发 `resp_ip 127.0.0.2 ::2` ⇒ `mark999`，紧接着 `mark777` 会把域名写入 `gen/fakeiplist.txt`（通过 `domain_output`）。
-     3. `mark777` 还会调用 `my_fakeiplist` 生成可复用规则；完成后 `mark22` 分支直接 `accept`，客户端收到 fakeip 答案。
-   - 因为 `mark22` 已 `accept`，`switch3` 控制的 not-in-list 流程不会再运行，所以只要 google 留在灰名单中，泄露/非泄露切换对它的 fakeip 处理没有影响。
+### 2.9 Web UI / API 触点
+- `switch` 插件开放 `/plugins/switchN/post`，可在线切换 A/B。
+- `domain_output` 会通过 `/api/v1/update/*` 系列接口回写 `gen/*.txt`，实现在线刷新列表。
+- `/api/v1/system/*` 提供状态查询，可结合 `mosdns.log` 对照本文流程查证实际行为。
 
-3. **移除灰名单或期望 real IP（与 `switch3` 相关）**
-   - 若将 google.com 暂时移出 `greylist`，它会像其他“列表外”域名一样落入 `sequence_not_in_list_leak` 或 `_noleak`，由 `switch3` 决定：
-
-| 模式 | 初始查询 | fallback | fakeip 标记 | 适用说明 |
-|------|----------|----------|-------------|----------|
-| 泄露 (`switch3=A`) | 优先 `$sequence_local`（国内） | 本地失败/污染 (`mark123`) 时转 `$sequence_google`；国外返回非 CN IP ⇒ `mark89` → `$sequence_fakeip` | `mark68`（列表外）+ `mark89`（fakeip） | 默认模式；适合希望“先国内再国外”的场景 |
-| 不泄露 (`switch3=B`) | 直接 `$sequence_google_node`（带 ECS） | `rcode 2/5` 时以 `$sequence_local` 兜底，并记录 `mark456` | `mark89` → `$sequence_fakeip`；仍会生成 fakeip 规则 | 适合想立即走国外/带 ECS 的节点。
-
-   - 现实中 google 往往返回非 CN IP，因而两种模式都会把 `mark89` 置为真并触发 fakeip；区别只在于“谁先查、何时兜底”。
 
 ## 3. 附录
 
