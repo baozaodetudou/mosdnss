@@ -1,135 +1,114 @@
-%% mosdns demo 请求流程（竖屏 1600x3200 紧凑布局）
 %%{init: {
       "flowchart": {
         "useMaxWidth": true,
         "htmlLabels": true,
         "curve": "basis",
-        "rankSpacing": 65,
-        "nodeSpacing": 30,
-        "padding": 16
+        "rankSpacing": 60,
+        "nodeSpacing": 40,
+        "padding": 20
       },
       "themeVariables": {
-        "fontSize": "40px",
-        "fontFamily": "'LXGW WenKai', 'Inter', 'Noto Sans SC', sans-serif",
-        "primaryColor": "#EEF1FF",
-        "primaryTextColor": "#0F172A",
-        "lineColor": "#4C1D95",
-        "secondaryColor": "#F5F3FF",
-        "tertiaryColor": "#FFFFFF",
-        "clusterBkg": "#F8F5FF",
-        "clusterBorder": "#C7B9FF"
+        "fontSize": "32px",
+        "fontFamily": "'LXGW WenKai', 'Inter', sans-serif",
+        "primaryColor": "#EEF2FF",
+        "edgeLabelBackground": "#FFFFFF",
+        "clusterBkg": "#FAFAFA",
+        "clusterBorder": "#E5E7EB"
       }
 }}%%
-flowchart TB
-    classDef terminal fill:#4C1D95,stroke:#31186E,stroke-width:2px,color:#fff;
-    classDef decision fill:#E0E7FF,stroke:#4C1D95,color:#0F172A;
-    classDef effect stroke-dasharray:6 4,fill:#FFF7E0,stroke:#D97706,color:#7C2D12;
-    classDef entry fill:#DBEAFE,stroke:#1D4ED8,color:#0F172A;
-    classDef note fill:#F8F5FF,stroke:#C7B9FF,color:#4C1D95;
-    linkStyle default stroke:#4C1D95,stroke-width:2px;
 
-    %% 入口链路
-    subgraph lane_entry["入口过滤（sequence_6666）"]
+flowchart LR
+    %% --- 样式定义 ---
+    classDef base fill:#EEF2FF,stroke:#4F46E5,stroke-width:2px,color:#1E1B4B;
+    classDef decision fill:#ffffff,stroke:#4F46E5,stroke-width:2px,color:#1E1B4B,shape:diamond;
+    classDef block fill:#FEF2F2,stroke:#DC2626,stroke-width:2px,color:#991B1B;
+    classDef cn fill:#F0FDF4,stroke:#16A34A,stroke-width:2px,color:#14532D;
+    classDef proxy fill:#F5F3FF,stroke:#7C3AED,stroke-width:2px,color:#4C1D95;
+    classDef effect stroke-dasharray: 5 5,fill:#FFFBEB,stroke:#D97706,color:#92400E;
+
+    %% --- 1. 入口与安全过滤 (Entry) ---
+    subgraph SG_Entry ["1. 入口过滤与预处理"]
         direction TB
-        start([客户端请求 → :53]):::terminal --> sw6{switch6 AAAA?}:::entry
-        sw6 -- "是 & AAAA" --> drop_v6([拦截 AAAA → NXDOMAIN]):::terminal
-        sw6 -- "否" --> sw5{switch5 SOA/PTR/HTTPS?}
-        sw5 -- "禁止类型" --> drop_qtype([屏蔽返回]):::terminal
-        sw5 -- "允许" --> ddns{域名 ∈ DDNS?}
-        ddns -- "命中" --> local_ddns([国内查询 → 返回]):::terminal
-        ddns -- "未命中" --> sw1{switch1 黑名单?}
-        sw1 -- "是" --> nv4{域名 ∈ 无V4?}
-        nv4 -- "是" --> block_nv4([拦截无V4]):::terminal
-        nv4 -- "否" --> nv6{域名 ∈ 无V6?}
-        nv6 -- "是" --> block_nv6([拦截无V6]):::terminal
-        nv6 -- "否" --> blocklist{域名 ∈ 黑名单?}
-        blocklist -- "是" --> block_black([黑名单拦截]):::terminal
-        blocklist -- "否" --> sw7{switch7 AdGuard?}
-        sw7 -- "开" --> adguard_plugin{AdGuard 插件命中?}
-        sw7 -- "关" --> sw2{switch2 客户端白名单?}
-        adguard_plugin -- "命中" --> block_ad([实时广告拦截]):::terminal
-        adguard_plugin -- "未命中" --> adguard_live{在线广告域?}
-        adguard_live -- "命中" --> block_ad2([在线广告拦截]):::terminal
-        adguard_live -- "未命中" --> sw2
-        sw2 -- "未授权客户端" --> local_client([国内查询 → 返回]):::terminal
-        sw2 -- "授权客户端" --> rewrite{域名 ∈ 重写清单?}
-        rewrite -- "命中" --> rewrite_up([rewrite 上游查询 → 返回]):::terminal
-        rewrite -- "未命中" --> type_check{qtype 属于 A/AAAA?}
-        type_check -- "否" --> geo_mark{域名 ∈ geosite_cn?}
-        geo_mark -- "是" --> local_others([国内查询 → 返回]):::terminal
-        geo_mark -- "否" --> intl_others([国外查询 → 返回]):::terminal
-        type_check -- "是" --> greylist{域名 ∈ 灰名单?}
-        greylist -- "是" --> fakeip_grey(["fakeip (sing-box)"]):::terminal
-        greylist -- "否" --> stage_lists[[进入名单分流]]:::note
+        %% 修复点：给文字加上双引号，并确保换行
+        Start(["DNS 请求"]):::base --> SW_Type{类型检查}:::decision
+
+        SW_Type -- "AAAA/SOA/HTTPS" --> Block_Type(["拦截/拒绝"]):::block
+        SW_Type -- "正常查询" --> SW_DDNS{DDNS?}:::decision
+
+        SW_DDNS -- "是" --> Ret_DDNS(["国内直连"]):::cn
+        SW_DDNS -- "否" --> SW_Sec{安全检查<br/>黑名单/无V4V6/AdG}:::decision
+
+        SW_Sec -- "命中拦截" --> Block_Sec(["拦截/屏蔽"]):::block
+        SW_Sec -- "通过" --> SW_Client{客户端权限}:::decision
+
+        SW_Client -- "未授权" --> Ret_Limit(["限制国内查询"]):::cn
+        SW_Client -- "授权" --> Gate_Shunt((进入分流)):::base
     end
 
-    %% 名单链路
-    subgraph lane_lists["主分流 / 名单"]
+    %% --- 2. 核心分流 (Routing) ---
+    subgraph SG_Route ["2. 名单与规则分流"]
         direction TB
-        stage_lists --> whitelist{域名 ∈ 白名单?}
-        whitelist -- "是" --> white_lookup([白名单国内查询])
-        white_lookup --> white_record([补 nov4/nov6 或写入无Vx]):::effect
-        white_record --> white_cnmihomo{CNtoMihomo?}
-        white_cnmihomo -- "是" --> fakeip_mihomo(["fakeip (mihomo)"]):::terminal
-        white_cnmihomo -- "否" --> realip_return([返回 real IP]):::terminal
+        Gate_Shunt --> SW_Rewrite{重写/Geosite?}:::decision
 
-        whitelist -- "否" --> gen_list{域名 ∈ 自/在线国外清单?}
-        gen_list -- "是" --> fakeip_foreign(["fakeip (sing-box)"]):::terminal
-        gen_list -- "否" --> gen_cn{域名 ∈ 自/在线国内清单?}
-        gen_cn -- "是" --> local_cn_scan([国内查询 real IP])
-        gen_cn -- "否" --> mode_entry[[进入模式决策]]
-        local_cn_scan --> cn_result{国内结果判断}
-        cn_result -. "命中 17.0.0.0/8" .-> add_cn_gen([加入自生成国内]):::effect
-        cn_result -. "rcode0 无IP/rcode3 & AAAA" .-> add_nv6_cn([写入无V6]):::effect
-        cn_result -. "rcode0 无IP/rcode3 & A" .-> add_nv4_cn([写入无V4]):::effect
-        cn_result --> cn_need_mode{仍需模式判断?}
-        cn_need_mode -- "否" --> realip_return
-        cn_need_mode -- "是" --> mode_entry
+        SW_Rewrite -- "Rewrite/GeositeCN" --> Ret_Direct(["国内/上游直连"]):::cn
+        SW_Rewrite -- "常规流量" --> SW_List{名单匹配}:::decision
+
+        SW_List -- "灰名单" --> Proxy_Grey(["FakeIP (Grey)"]):::proxy
+        SW_List -- "白名单" --> Act_White[白名单国内查询]:::cn
+        SW_List -- "黑/国外名单" --> Proxy_Foreign(["FakeIP (Foreign)"]):::proxy
+        SW_List -- "未命中名单" --> Mode_Gate((进入模式决策)):::base
     end
 
-    %% 模式决策
-    subgraph lane_modes["模式决策 / 泳道"]
+    %% --- 3. 核心解析逻辑 (Resolution) ---
+    subgraph SG_Resolution ["3. 智能解析模式"]
         direction TB
-        mode_entry --> mode{模式选择?}
-        subgraph compat_lane["兼容模式（国内优先）"]
-            direction TB
-            compat[国内查询结果]
-            mode -- "兼容" --> compat
-            compat -- "rcode0 无AAAA 或 rcode3" --> add_nv6_compat([记录无V6 → 返回国内]):::effect
-            compat -- "rcode0 无A" --> retry_intl([国外补查])
-            retry_intl -. "补查成功" .-> compat
-            retry_intl -- "仍无V4" --> add_nv4_compat([记录无V4 → 返回]):::effect
-            compat -- "IP 非中国" --> fakeip_foreign
-            compat -- "IP 属中国" --> compat_cnmihomo{CNtoMihomo?}
-            compat_cnmihomo -- "是" --> fakeip_mihomo
-            compat_cnmihomo -- "否" --> realip_return
+
+        %% 左侧：白名单处理
+        Act_White --> Auto_White[补写无Vx记录]:::effect
+        Auto_White --> Chk_Mihomo1{CN转Mihomo?}:::decision
+        Chk_Mihomo1 -- "是" --> Ret_Fake_CN(["FakeIP (Mihomo)"]):::proxy
+        Chk_Mihomo1 -- "否" --> Ret_Real_CN(["Real IP"]):::cn
+
+        %% 核心：双模式并行
+        Mode_Gate --> SW_Mode{模式选择}:::decision
+
+        %% 上半部分：兼容模式
+        subgraph Mode_Compat ["兼容模式 (国内优先)"]
+            direction LR
+            SW_Mode -- "兼容" --> Q_Compat[国内查询]:::cn
+            Q_Compat --> Res_Compat{结果分析}:::decision
+
+            Res_Compat -- "IP属中国" --> Chk_Mi2{CN转Mi?}:::decision
+            Res_Compat -- "无结果/污染" --> Retry_Intl[国外补查]:::proxy
+
+            Retry_Intl --> Upd_Foreign[+加自生成国外]:::effect
+            Upd_Foreign --> Res_Intl_Final[国外结果]:::proxy
+
+            Chk_Mi2 -- "是" --> Out_Fake_C(["FakeIP"]):::proxy
+            Chk_Mi2 -- "否" --> Out_Real_C(["Real IP"]):::cn
         end
-        subgraph secure_lane["安全模式（国外优先）"]
-            direction TB
-            secure[国外查询结果]
-            mode -- "安全" --> secure
-            secure -- "rcode0 无AAAA 或 rcode3" --> add_nv6_secure([记录无V6 → 返回国外]):::effect
-            secure -- "rcode0 无A" --> retry_domestic([国内补查])
-            retry_domestic -. "补查成功" .-> secure
-            retry_domestic -- "仍无V4" --> add_nv4_secure([记录无V4 → 返回]):::effect
-            secure -- "IP 非中国" --> fakeip_foreign
-            secure -- "IP 属中国" --> secure_cnmihomo{CNtoMihomo?}
-            secure_cnmihomo -- "是" --> fakeip_mihomo
-            secure_cnmihomo -- "否" --> realip_return
+
+        %% 下半部分：安全模式
+        subgraph Mode_Secure ["安全模式 (国外优先)"]
+            direction LR
+            SW_Mode -- "安全" --> Q_Secure[国外查询]:::proxy
+            Q_Secure --> Res_Secure{结果分析}:::decision
+
+            Res_Secure -- "IP非中国" --> Out_Fake_S(["FakeIP"]):::proxy
+            Res_Secure -- "IP属中国/无结果" --> Retry_CN[国内补查]:::cn
+
+            Retry_CN --> Upd_CN[+加自生成国内]:::effect
+            Upd_CN --> Res_CN_Final[国内结果]:::cn
         end
     end
 
-    %% 副作用
-    subgraph lane_effects["副作用 / 列表更新"]
-        direction TB
-        gen_list -. "在线国外但未在自生成" .-> add_foreign_gen([加入自生成国外]):::effect
-    end
+    %% --- 4. 终态汇聚 (Output) ---
 
-    %% 终态
-    subgraph lane_end["终态"]
-        direction TB
-        drop_v6 & drop_qtype & block_nv4 & block_nv6 & block_black & block_ad & block_ad2 --> end_block([终止 / NXDOMAIN]):::terminal
-        local_ddns & local_client & rewrite_up & local_others & intl_others --> end_real([返回 real IP]):::terminal
-        fakeip_grey & fakeip_foreign & fakeip_mihomo --> end_fakeip([返回 fake IP]):::terminal
-        realip_return --> end_real
-    end
+    Ret_DDNS & Ret_Limit & Ret_Direct & Ret_Real_CN & Out_Real_C & Res_CN_Final --> End_Real((返回 Real IP)):::cn
+    Proxy_Grey & Proxy_Foreign & Ret_Fake_CN & Out_Fake_C & Out_Fake_S & Res_Intl_Final --> End_Fake((返回 Fake IP)):::proxy
+    Block_Type & Block_Sec --> End_Block((终止/NXDOMAIN)):::block
+
+    %% 调整层级关系
+    SG_Entry --> SG_Route --> SG_Resolution
+
+    linkStyle default stroke:#6366f1,stroke-width:2px,fill:none;
