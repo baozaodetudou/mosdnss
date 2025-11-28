@@ -59,4 +59,22 @@ fakeip分流大法总教程：https://drive.google.com/drive/u/1/folders/1ldD2Xq
 
 <img width="1561" height="893" alt="image" src="https://github.com/user-attachments/assets/e91b7a6e-53e3-4be9-ae54-e750843292c6" />
 
+## 文档渲染与导出
+
+- 所有 Mermaid 源文件位于 `docs/mosdns_request_flow*.mmd`，默认使用 44px+ 字号与紧凑泳道，需要配套导出 SVG 才能保持布局。
+- 推荐命令（需 Node.js 环境）：
+
+  ```bash
+  npx @mermaid-js/mermaid-cli@10.9.1 \
+    -i docs/mosdns_request_flow.mmd \
+    -o docs/mosdns_request_flow.svg \
+    -w 3840 -H 2160
+
+  npx @mermaid-js/mermaid-cli@10.9.1 \
+    -i docs/mosdns_request_flow_portrait.mmd \
+    -o docs/mosdns_request_flow_portrait.svg \
+    -w 1600 -H 3200
+  ```
+
+- 1080p 版本的 SVG（`mosdns_request_flow_1080p.svg`）通过缩放复用 4K 布局，并加倍字体确保常规显示器也能清晰阅读。
 
