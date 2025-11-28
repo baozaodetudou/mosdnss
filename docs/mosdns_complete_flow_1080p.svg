@@ -1,0 +1,292 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" font-family="'Segoe UI', 'Microsoft YaHei', Arial, sans-serif">
+  <defs>
+    <!-- 渐变背景 -->
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f2027;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#203a43;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2c5364;stop-opacity:1" />
+    </linearGradient>
+
+    <!-- 节点渐变 -->
+    <linearGradient id="startGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#56CCF2;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2F80ED;stop-opacity:1" />
+    </linearGradient>
+
+    <linearGradient id="decisionGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#F093FB;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#F5576C;stop-opacity:1" />
+    </linearGradient>
+
+    <linearGradient id="processGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#4facfe;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#00f2fe;stop-opacity:1" />
+    </linearGradient>
+
+    <linearGradient id="endGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#fa709a;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#fee140;stop-opacity:1" />
+    </linearGradient>
+
+    <!-- 箭头 -->
+    <marker id="arrowYes" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#4ade80" />
+    </marker>
+    <marker id="arrowNo" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#f87171" />
+    </marker>
+    <marker id="arrowNormal" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#94a3b8" />
+    </marker>
+
+    <!-- 阴影 -->
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.3"/>
+    </filter>
+
+    <style>
+      .section-box { fill: rgba(255,255,255,0.05); stroke: rgba(255,255,255,0.2); stroke-width: 2; rx: 15; }
+      .title-text { fill: #ffffff; font-size: 28px; font-weight: bold; }
+      .section-title { fill: #ffffff; font-size: 18px; font-weight: bold; opacity: 0.9; }
+      .node-text { fill: #ffffff; font-size: 12px; text-anchor: middle; }
+      .label-text { fill: #e0e0e0; font-size: 10px; font-weight: 600; }
+      .arrow-yes { stroke: #4ade80; stroke-width: 2; fill: none; marker-end: url(#arrowYes); }
+      .arrow-no { stroke: #f87171; stroke-width: 2; fill: none; marker-end: url(#arrowNo); }
+      .arrow-normal { stroke: #94a3b8; stroke-width: 1.5; fill: none; marker-end: url(#arrowNormal); }
+    </style>
+  </defs>
+
+  <!-- 背景 -->
+  <rect width="1920" height="1080" fill="url(#bgGradient)"/>
+
+  <!-- 标题 -->
+  <text x="960" y="40" class="title-text" text-anchor="middle">mosdns 完整请求处理流程</text>
+
+  <!-- 入口过滤区域 -->
+  <rect class="section-box" x="50" y="80" width="580" height="480"/>
+  <text x="340" y="105" class="section-title" text-anchor="middle">入口过滤 (sequence_6666)</text>
+
+  <!-- 客户端请求 -->
+  <rect x="260" y="130" width="160" height="50" rx="25" fill="url(#startGradient)" filter="url(#shadow)"/>
+  <text x="340" y="160" class="node-text">DNS 请求 :53</text>
+
+  <!-- switch6 -->
+  <path d="M 340 210 L 390 240 L 340 270 L 290 240 Z" fill="url(#decisionGradient)" filter="url(#shadow)"/>
+  <text x="340" y="245" class="node-text">switch6</text>
+  <path d="M 340 180 L 340 210" class="arrow-normal"/>
+
+  <!-- switch5 -->
+  <path d="M 340 300 L 390 330 L 340 360 L 290 330 Z" fill="url(#decisionGradient)" filter="url(#shadow)"/>
+  <text x="340" y="335" class="node-text">switch5</text>
+  <path d="M 340 270 L 340 300" class="arrow-yes"/>
+  <text x="365" y="290" class="label-text" fill="#4ade80">通过</text>
+
+  <!-- DDNS 检查 -->
+  <path d="M 340 390 L 390 420 L 340 450 L 290 420 Z" fill="url(#decisionGradient)" filter="url(#shadow)"/>
+  <text x="340" y="425" class="node-text">DDNS?</text>
+  <path d="M 340 360 L 340 390" class="arrow-yes"/>
+
+  <!-- switch1 黑名单 -->
+  <path d="M 340 480 L 390 510 L 340 540 L 290 510 Z" fill="url(#decisionGradient)" filter="url(#shadow)"/>
+  <text x="340" y="515" class="node-text">switch1</text>
+  <path d="M 340 450 L 340 480" class="arrow-no"/>
+  <text x="365" y="470" class="label-text" fill="#f87171">否</text>
+
+  <!-- 国内DNS（DDNS路径） -->
+  <rect x="460" y="400" width="140" height="40" rx="8" fill="url(#processGradient)" filter="url(#shadow)"/>
+  <text x="530" y="425" class="node-text">国内DNS查询</text>
+  <path d="M 390 420 L 460 420" class="arrow-yes"/>
+  <text x="420" y="415" class="label-text" fill="#4ade80">是</text>
+
+  <!-- 主分流与名单区域 -->
+  <rect class="section-box" x="680" y="80" width="600" height="480"/>
+  <text x="980" y="105" class="section-title" text-anchor="middle">主分流与名单</text>
+
+  <!-- 进入主分流 -->
+  <path d="M 390 510 L 710 240" class="arrow-no"/>
+  <text x="550" y="370" class="label-text" fill="#f87171">否</text>
+
+  <!-- rewrite -->
+  <rect x="710" y="130" width="100" height="40" rx="8" fill="url(#processGradient)" filter="url(#shadow)"/>
+  <text x="760" y="155" class="node-text">rewrite</text>
+
+  <!-- 类型检查 -->
+  <path d="M 760 200 L 810 230 L 760 260 L 710 230 Z" fill="url(#decisionGradient)" filter="url(#shadow)"/>
+  <text x="760" y="235" class="node-text">A/AAAA?</text>
+  <path d="M 760 170 L 760 200" class="arrow-normal"/>
+
+  <!-- 灰名单 -->
+  <path d="M 870 180 L 920 210 L 870 240 L 820 210 Z" fill="url(#decisionGradient)" filter="url(#shadow)"/>
+  <text x="870" y="215" class="node-text">greylist?</text>
+  <path d="M 810 230 L 820 210" class="arrow-yes"/>
+
+  <!-- 白名单 -->
+  <path d="M 870 270 L 920 300 L 870 330 L 820 300 Z" fill="url(#decisionGradient)" filter="url(#shadow)"/>
+  <text x="870" y="305" class="node-text">whitelist?</text>
+  <path d="M 870 240 L 870 270" class="arrow-no"/>
+
+  <!-- realiplist -->
+  <path d="M 870 360 L 920 390 L 870 420 L 820 390 Z" fill="url(#decisionGradient)" filter="url(#shadow)"/>
+  <text x="870" y="395" class="node-text">realiplist?</text>
+  <path d="M 870 330 L 870 360" class="arrow-no"/>
+
+  <!-- 并发匹配 -->
+  <rect x="820" y="450" width="100" height="50" rx="8" fill="url(#processGradient)" filter="url(#shadow)"/>
+  <text x="870" y="470" class="node-text">并发匹配</text>
+  <text x="870" y="485" class="node-text" font-size="10">gen_conc</text>
+  <path d="M 870 420 L 870 450" class="arrow-no"/>
+
+  <!-- 黑洞IP判断 -->
+  <path d="M 870 530 L 920 560 L 870 590 L 820 560 Z" fill="url(#decisionGradient)" filter="url(#shadow)"/>
+  <text x="870" y="560" class="node-text" font-size="10">888/999/666?</text>
+  <path d="M 870 500 L 870 530" class="arrow-normal"/>
+
+  <!-- FakeIP 路径 -->
+  <rect x="1000" y="160" width="120" height="50" rx="8" fill="url(#endGradient)" filter="url(#shadow)"/>
+  <text x="1060" y="180" class="node-text">FakeIP</text>
+  <text x="1060" y="195" class="node-text" font-size="10">sing-box</text>
+  <path d="M 920 210 L 1000 185" class="arrow-yes"/>
+  <text x="960" y="205" class="label-text" fill="#4ade80">是</text>
+
+  <!-- 国内路径 -->
+  <rect x="1000" y="280" width="120" height="50" rx="8" fill="url(#processGradient)" filter="url(#shadow)"/>
+  <text x="1060" y="300" class="node-text">国内DNS</text>
+  <text x="1060" y="315" class="node-text" font-size="10">cache_cn</text>
+  <path d="M 920 300 L 1000 305" class="arrow-yes"/>
+
+  <!-- 国外路径 -->
+  <rect x="1000" y="370" width="120" height="50" rx="8" fill="url(#processGradient)" filter="url(#shadow)"/>
+  <text x="1060" y="390" class="node-text">国外DNS</text>
+  <text x="1060" y="405" class="node-text" font-size="10">DoH</text>
+  <path d="M 920 390 L 1000 395" class="arrow-yes"/>
+
+  <!-- 模式选择区域 -->
+  <rect class="section-box" x="680" y="600" width="600" height="420"/>
+  <text x="980" y="625" class="section-title" text-anchor="middle">兼容 vs 安全模式</text>
+
+  <!-- 黑洞匹配后进入模式选择 -->
+  <path d="M 820 560 L 760 650" class="arrow-yes"/>
+  <text x="790" y="605" class="label-text" fill="#4ade80">888</text>
+
+  <path d="M 920 560 L 1000 650" class="arrow-yes"/>
+  <text x="960" y="605" class="label-text" fill="#4ade80">999</text>
+
+  <!-- 模式选择 -->
+  <path d="M 880 670 L 930 700 L 880 730 L 830 700 Z" fill="url(#decisionGradient)" filter="url(#shadow)"/>
+  <text x="880" y="705" class="node-text">模式?</text>
+  <path d="M 870 590 L 880 670" class="arrow-no"/>
+  <text x="875" y="635" class="label-text" fill="#f87171">666</text>
+
+  <!-- 兼容模式 -->
+  <rect x="710" y="760" width="140" height="100" rx="10" fill="url(#processGradient)" filter="url(#shadow)"/>
+  <text x="780" y="785" class="node-text" font-weight="bold">兼容模式</text>
+  <text x="780" y="805" class="node-text" font-size="10">1. 国内查询</text>
+  <text x="780" y="820" class="node-text" font-size="10">2. 判断无V6/V4</text>
+  <text x="780" y="835" class="node-text" font-size="10">3. 国外补查</text>
+  <text x="780" y="850" class="node-text" font-size="10">4. CNtoMihomo</text>
+  <path d="M 830 700 L 780 760" class="arrow-yes"/>
+  <text x="800" y="735" class="label-text" fill="#4ade80">兼容</text>
+
+  <!-- 安全模式 -->
+  <rect x="920" y="760" width="140" height="100" rx="10" fill="url(#processGradient)" filter="url(#shadow)"/>
+  <text x="990" y="785" class="node-text" font-weight="bold">安全模式</text>
+  <text x="990" y="805" class="node-text" font-size="10">1. 国外+ECS查询</text>
+  <text x="990" y="820" class="node-text" font-size="10">2. 判断无V6/V4</text>
+  <text x="990" y="835" class="node-text" font-size="10">3. 国内兜底</text>
+  <text x="990" y="850" class="node-text" font-size="10">4. CNtoMihomo</text>
+  <path d="M 930 700 L 990 760" class="arrow-yes"/>
+  <text x="960" y="735" class="label-text" fill="#4ade80">安全</text>
+
+  <!-- 自生成列表更新区域 -->
+  <rect class="section-box" x="1330" y="80" width="540" height="940"/>
+  <text x="1600" y="105" class="section-title" text-anchor="middle">自生成列表更新</text>
+
+  <!-- 国内生成 -->
+  <rect x="1360" y="150" width="240" height="100" rx="10" fill="rgba(100,200,100,0.2)" stroke="#4ade80" stroke-width="2" filter="url(#shadow)"/>
+  <text x="1480" y="175" class="node-text" font-weight="bold">自生成国内列表</text>
+  <text x="1480" y="195" class="node-text" font-size="10">• 命中 geosite_cn</text>
+  <text x="1480" y="210" class="node-text" font-size="10">• 返回 IP ∈ 中国</text>
+  <text x="1480" y="225" class="node-text" font-size="10">• 写入 gen/cnlist.txt</text>
+  <text x="1480" y="240" class="node-text" font-size="10">• 记录无V4/V6</text>
+
+  <!-- 国外生成 -->
+  <rect x="1360" y="280" width="240" height="100" rx="10" fill="rgba(200,100,100,0.2)" stroke="#f87171" stroke-width="2" filter="url(#shadow)"/>
+  <text x="1480" y="305" class="node-text" font-weight="bold">自生成国外列表</text>
+  <text x="1480" y="325" class="node-text" font-size="10">• 返回 IP ∉ 中国</text>
+  <text x="1480" y="340" class="node-text" font-size="10">• 写入 gen/foreignlist.txt</text>
+  <text x="1480" y="355" class="node-text" font-size="10">• 触发 FakeIP</text>
+  <text x="1480" y="370" class="node-text" font-size="10">• 写入 gen/fakeiplist.txt</text>
+
+  <!-- 箭头指向自生成区域 -->
+  <path d="M 1120 305 L 1360 200" class="arrow-normal" stroke-dasharray="5,5"/>
+  <path d="M 1120 560 L 1360 330" class="arrow-normal" stroke-dasharray="5,5"/>
+
+  <!-- 最终输出 -->
+  <rect x="1360" y="420" width="240" height="80" rx="10" fill="url(#endGradient)" filter="url(#shadow)"/>
+  <text x="1480" y="445" class="node-text" font-weight="bold">返回结果</text>
+  <text x="1480" y="465" class="node-text" font-size="11">• Real IP (真实地址)</text>
+  <text x="1480" y="480" class="node-text" font-size="11">• Fake IP (假地址)</text>
+  <text x="1480" y="495" class="node-text" font-size="11">• NXDOMAIN (拦截)</text>
+
+  <!-- 关键开关说明 -->
+  <rect x="1360" y="540" width="240" height="230" rx="10" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.3)" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="1480" y="565" class="node-text" font-weight="bold">关键开关配置</text>
+
+  <text x="1375" y="590" class="node-text" font-size="11" text-anchor="start" fill="#4ade80">switch1=B</text>
+  <text x="1475" y="590" class="node-text" font-size="10" text-anchor="start">不启用黑名单</text>
+
+  <text x="1375" y="610" class="node-text" font-size="11" text-anchor="start" fill="#4ade80">switch2=A</text>
+  <text x="1475" y="610" class="node-text" font-size="10" text-anchor="start">客户端IP检查</text>
+
+  <text x="1375" y="630" class="node-text" font-size="11" text-anchor="start" fill="#4ade80">switch3=A</text>
+  <text x="1475" y="630" class="node-text" font-size="10" text-anchor="start">泄露模式</text>
+
+  <text x="1375" y="650" class="node-text" font-size="11" text-anchor="start" fill="#4ade80">switch4=A</text>
+  <text x="1475" y="650" class="node-text" font-size="10" text-anchor="start">启用lazy cache</text>
+
+  <text x="1375" y="670" class="node-text" font-size="11" text-anchor="start" fill="#4ade80">switch5=A</text>
+  <text x="1475" y="670" class="node-text" font-size="10" text-anchor="start">屏蔽SOA/PTR</text>
+
+  <text x="1375" y="690" class="node-text" font-size="11" text-anchor="start" fill="#4ade80">switch6=B</text>
+  <text x="1475" y="690" class="node-text" font-size="10" text-anchor="start">允许AAAA</text>
+
+  <text x="1375" y="710" class="node-text" font-size="11" text-anchor="start" fill="#4ade80">switch7=A</text>
+  <text x="1475" y="710" class="node-text" font-size="10" text-anchor="start">启用AdGuard</text>
+
+  <text x="1480" y="740" class="node-text" font-size="10" font-style="italic">默认配置适用于大多数场景</text>
+  <text x="1480" y="755" class="node-text" font-size="10" font-style="italic">可通过Web UI动态调整</text>
+
+  <!-- 缓存层说明 -->
+  <rect x="1360" y="800" width="240" height="200" rx="10" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.3)" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="1480" y="825" class="node-text" font-weight="bold">多层缓存架构</text>
+
+  <text x="1480" y="850" class="node-text" font-size="11">cache_all (20M)</text>
+  <text x="1480" y="865" class="node-text" font-size="9">客户端第一层缓存，lazy TTL 3天</text>
+
+  <text x="1480" y="890" class="node-text" font-size="11">cache_cn</text>
+  <text x="1480" y="905" class="node-text" font-size="9">国内查询缓存</text>
+
+  <text x="1480" y="930" class="node-text" font-size="11">cache_google</text>
+  <text x="1480" y="945" class="node-text" font-size="9">国外查询缓存</text>
+
+  <text x="1480" y="970" class="node-text" font-size="11">cache_node</text>
+  <text x="1480" y="985" class="node-text" font-size="9">节点查询缓存（带ECS）</text>
+
+  <!-- 底部说明 -->
+  <g transform="translate(50, 1000)">
+    <text x="0" y="0" class="node-text" font-size="14" text-anchor="start" font-weight="bold">流程说明：</text>
+    <text x="0" y="25" class="node-text" font-size="11" text-anchor="start">
+      1. 客户端查询经过多层过滤（switch6→switch5→DDNS→switch1→switch7→switch2）
+    </text>
+    <text x="0" y="45" class="node-text" font-size="11" text-anchor="start">
+      2. 进入主分流后按名单匹配（greylist→whitelist→realiplist→并发匹配）
+    </text>
+    <text x="0" y="65" class="node-text" font-size="11" text-anchor="start">
+      3. 并发匹配返回黑洞IP标签（888=国内，999=fakeip，666=未命中）→ 进入兼容/安全模式
+    </text>
+  </g>
+
+  <!-- 版本信息 -->
+  <text x="1870" y="1070" class="node-text" font-size="10" text-anchor="end" opacity="0.6">mosdns v1 完整流程 @ 1080p</text>
+
+</svg>
