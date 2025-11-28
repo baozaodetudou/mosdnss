@@ -1,6 +1,5 @@
-# mosdns1 请求流程解析
+# mosdns 请求流程解析
 
-本文基于 `mosdns start --dir /Users/doumao/code/github/mosdns/demo/mosdns1` 启动的默认配置，对一次 `nslookup baidu.com 127.0.0.1` 的内部执行过程进行拆解，并附上关键配置速查。
 
 ## 1. 启动阶段
 
