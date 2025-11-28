@@ -8,6 +8,7 @@
 
 | 时间戳 | 功能名称 | 类型 | 状态 | 方案包路径 |
 |--------|----------|------|------|------------|
+| 202511281405 | flow_svg_opt | 文档 | ✅已完成 | history/2025-11/202511281405_flow_svg_opt/ |
 | 202511281215 | flow_svg | 文档 | ✅已完成 | history/2025-11/202511281215_flow_svg/ |
 | 202511271330 | google_flow_doc | 文档 | ✅已完成 | history/2025-11/202511271330_google_flow_doc/ |
 | 202511271045 | dns_flow_doc | 文档 | ✅已完成 | history/2025-11/202511271045_dns_flow_doc/ |
@@ -17,6 +18,7 @@
 ## 按月归档
 
 ### 2025-11
+- [202511281405_flow_svg_opt](2025-11/202511281405_flow_svg_opt/) - mosdns 流程图优化 (入口/名单/模式 泳道)
 - [202511281215_flow_svg](2025-11/202511281215_flow_svg/) - mosdns demo 请求流程图（Mermaid + SVG）
 - [202511271330_google_flow_doc](2025-11/202511271330_google_flow_doc/) - mosdns1 Google 请求流程补充
 - [202511271045_dns_flow_doc](2025-11/202511271045_dns_flow_doc/) - mosdns1 请求流程文档

@@ -16,13 +16,15 @@ flowchart TB
         nv6 -- 是 --> block_nv6["屏蔽并记录"]
         nv6 -- 否 --> blocklist{域名 ∈ 黑名单?}
         blocklist -- 是 --> block_black["屏蔽并结束"]
-        blocklist -- 否 --> sw7{switch7 广告拦截?}
-        sw7 -- 是 & 广告域 --> block_ad["屏蔽广告"]
-        sw7 -- 否 或未命中 --> sw2{switch2 客户端白名单?}
+        blocklist -- 否 --> sw7{switch7 AdGuard 开关?}
+        sw7 -- 关闭或未启用 --> sw2{switch2 客户端白名单?}
+        sw7 -- 开启 --> adguard_plugin{AdGuard 插件命中?}
+        adguard_plugin -- 命中(实时插件) --> block_ad["屏蔽广告"]
+        adguard_plugin -- 未命中 --> adguard_live{在线广告域?}
+        adguard_live -- 命中(在线列表) --> block_ad2["返回 NXDOMAIN"]
+        adguard_live -- 未命中 --> sw2
         sw2 -- 开启且客户端∉名单 --> local_client["直接国内查询 -> 返回"]
-        sw2 -- 客户端允许 --> adguard_retry{广告列表再判?}
-        adguard_retry -- 命中 --> block_ad2["返回 NXDOMAIN"]
-        adguard_retry -- 未命中 --> rewrite{域名 ∈ 重定向列表?}
+        sw2 -- 客户端允许 --> rewrite{域名 ∈ 重定向列表?}
         rewrite -- 是 --> rewrite_up["rewrite 上游查询 -> 返回"]
         rewrite -- 否 --> type_check{qtype 属于 A/AAAA?}
         type_check -- 否 --> geo_mark{域名 ∈ geosite_cn?}
@@ -35,43 +37,66 @@ flowchart TB
 
     subgraph Mainflow[主分流与名单]
         direction TB
-        whitelist -- 是 --> whitelist_path["国内查询 -> 记录 nov4/nov6<br/>缺少对应记录 -> 写入无V4/无V6<br/>可选: CNtoMihomo fakeip"]
+        whitelist -- 是 --> whitelist_lookup["国内查询结果"]
+        whitelist_lookup --> whitelist_record["补全 nov4/nov6 或写入无Vx"]
+        whitelist_record --> whitelist_cnmihomo{CNtoMihomo 开启?}
+        whitelist_cnmihomo -- 是 --> fakeip_mihomo
+        whitelist_cnmihomo -- 否 --> realip_return
         whitelist -- 否 --> gen_list{域名 ∈ 自生成/在线国外清单?}
         gen_list -- 是 --> fakeip_foreign["fakeip (sing-box) -> 返回"]
         gen_list -- 否 --> gen_cn{域名 ∈ 自生成/在线国内清单?}
-        gen_cn -- 是 --> local_cn_prelude["国内查询 real IP 用于判断"]
+        gen_cn -- 是 --> local_cn_scan["国内查询 real IP"]
+        local_cn_scan --> cn_result{国内查询结果}
         gen_cn -- 否 --> mode{模式选择?}
     end
 
-    subgraph Mode[兼容 vs 安全模式]
+    subgraph Mode[模式决策]
         direction TB
-        mode -- 兼容 --> compat{国内查询结果}
-        compat -- rcode0 无AAAA 或 rcode3 --> add_nv6_compat["记录无V6 -> 返回国内结果"]
-        compat -- rcode0 无A (V4查询) --> retry_intl["国外补查 real IP"]
-        retry_intl -- 仍无V4 --> add_nv4_compat["记录无V4 -> 返回"]
-        compat -- 返回 IP 非中国 --> fakeip_foreign
-        compat -- 返回 IP 属中国 --> compat_cn2{CNtoMihomo 开启?}
-        compat_cn2 -- 是 --> fakeip_mihomo["fakeip (mihomo) -> 返回"]
-        compat_cn2 -- 否 --> realip_return["返回国内 real IP"]
+        mode{模式选择?}
 
-        mode -- 安全 --> secure{国外查询结果}
-        secure -- rcode0 无AAAA 或 rcode3 --> add_nv6_secure["记录无V6 -> 返回国外结果"]
-        secure -- rcode0 无A (V4查询) --> retry_domestic["国内补查 real IP"]
-        retry_domestic -- 仍无V4 --> add_nv4_secure["记录无V4 -> 返回"]
-        secure -- 返回 IP 非中国 --> fakeip_foreign
-        secure -- 返回 IP 属中国 --> secure_cn2{CNtoMihomo 开启?}
-        secure_cn2 -- 是 --> fakeip_mihomo
-        secure_cn2 -- 否 --> realip_return
+        subgraph ModeLanes[兼容 / 安全 泳道]
+            direction LR
+            subgraph ModeCompat[兼容模式（国内优先）]
+                direction TB
+                compat["国内查询结果"]
+                compat -- "rcode0 无AAAA 或 rcode3" --> add_nv6_compat["记录无V6 -> 返回国内结果"]
+                compat -- "rcode0 无A (V4查询)" --> retry_intl["国外补查 real IP"]
+                retry_intl -- "仍无V4" --> add_nv4_compat["记录无V4 -> 返回"]
+                retry_intl -. "补查成功" .-> compat
+                compat -- 返回 IP 非中国 --> fakeip_foreign
+                compat -- 返回 IP 属中国 --> compat_cn2{CNtoMihomo 开启?}
+                compat_cn2 -- 是 --> fakeip_mihomo
+                compat_cn2 -- 否 --> realip_return
+            end
+
+            subgraph ModeSecure[安全模式（国外优先）]
+                direction TB
+                secure["国外查询结果"]
+                secure -- "rcode0 无AAAA 或 rcode3" --> add_nv6_secure["记录无V6 -> 返回国外结果"]
+                secure -- "rcode0 无A (V4查询)" --> retry_domestic["国内补查 real IP"]
+                retry_domestic -- "仍无V4" --> add_nv4_secure["记录无V4 -> 返回"]
+                retry_domestic -. "补查成功" .-> secure
+                secure -- 返回 IP 非中国 --> fakeip_foreign
+                secure -- 返回 IP 属中国 --> secure_cn2{CNtoMihomo 开启?}
+                secure_cn2 -- 是 --> fakeip_mihomo
+                secure_cn2 -- 否 --> realip_return
+            end
+        end
+
+        mode -- 兼容 --> compat
+        mode -- 安全 --> secure
     end
 
-    subgraph Aftermath[自生成列表更新]
+    subgraph Aftermath[自生成列表与副作用]
         direction TB
-        local_cn_prelude --> cn_result{国内查询结果}
-        cn_result -- 命中 17.0.0.0/8 且未在列表 --> add_cn_gen["加入自生成国内列表"]
-        cn_result -- rcode0 无IP/rcode3 & AAAA --> add_nv6_cn["写入无V6"]
-        cn_result -- rcode0 无IP/rcode3 & A --> add_nv4_cn["写入无V4"]
-        cn_result --> mode
-        gen_list -- 未在自生成国外但命中在线国外 --> add_foreign_gen["加入自生成国外列表"]
+        local_cn_scan --> cn_result
+        cn_result -. "命中 17.0.0.0/8 且未在列表" .-> add_cn_gen["加入自生成国内列表"]
+        cn_result -. "rcode0 无IP/rcode3 & AAAA" .-> add_nv6_cn["写入无V6"]
+        cn_result -. "rcode0 无IP/rcode3 & A" .-> add_nv4_cn["写入无V4"]
+        cn_result --> cn_need_mode{仍需模式判断?}
+        cn_need_mode -- 否 --> realip_return
+        cn_need_mode -- 是 --> mode
+        gen_list -. "未在自生成但命中在线国外" .-> add_foreign_gen["加入自生成国外列表"]
     end
 
     %% 终态

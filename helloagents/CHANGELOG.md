@@ -10,7 +10,7 @@
 - 根据 `docs/mosdns1_request_flow.md` 与 `docs/mosdns流程.md` 汇总出完整的 mosdns demo 请求流程图，新增 Mermaid 源文件 `docs/mosdns_request_flow.mmd` 与导出的 `docs/mosdns_request_flow.svg`，并在知识库模块文档中指向该图以便复现。
 
 ### 变更
-- 无。
+- 优化 mosdns 请求流程图布局：拆分 AdGuard 插件/在线列表判断、细化白名单与国内列表节点，并以泳道方式区分兼容/安全模式，提升可读性。
 
 ### 修复
 - 无。
