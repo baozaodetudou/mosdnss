@@ -1,124 +1,124 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 1600" aria-labelledby="title desc" role="img">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1800 1900" aria-labelledby="title desc" role="img">
   <title id="title">mosdns 请求处理摘要</title>
-  <desc id="desc">手绘总览图，按四个阶段展示主要决策，字体放大并采用统一配色。</desc>
+  <desc id="desc">四大阶段的精简示意：入口过滤、名单与副作用、模式决策以及终态，使用细箭头与更宽的背景栏。</desc>
   <defs>
     <style>
       :root { font-family: 'LXGW WenKai', 'Inter', 'Noto Sans SC', sans-serif; }
       .bg { fill: url(#bg); }
-      .lane { fill: #F8F5FF; stroke: #C7B9FF; stroke-width: 3; rx: 24; }
-      .lane-title { font-size: 40px; font-weight: 600; fill: #4C1D95; }
-      .node rect { fill: #FFFFFF; stroke: #4C1D95; stroke-width: 3; rx: 20; }
-      .node text { font-size: 28px; fill: #0F172A; font-weight: 500; }
-      .node tspan { font-size: 24px; fill: #334155; }
+      .lane { fill: #F8F5FF; stroke: #C7B9FF; stroke-width: 4; rx: 36; }
+      .lane-title { font-size: 48px; font-weight: 600; fill: #4C1D95; }
+      .node rect { fill: #FFFFFF; stroke: #4C1D95; stroke-width: 3; rx: 24; }
+      .node text { font-size: 32px; fill: #0F172A; font-weight: 500; }
+      .node tspan { font-size: 28px; fill: #334155; }
       .terminal rect { fill: #4C1D95; stroke: #31186E; }
       .terminal text, .terminal tspan { fill: #FFFFFF; }
-      .arrow { stroke: #4C1D95; stroke-width: 4; fill: none; marker-end: url(#arrow); }
-      .arrow-label { font-size: 22px; fill: #4C1D95; font-weight: 600; }
+      .arrow { stroke: #4C1D95; stroke-width: 2.5; fill: none; marker-end: url(#arrowhead); }
+      .arrow-label { font-size: 26px; fill: #4C1D95; font-weight: 600; }
     </style>
     <linearGradient id="bg" x1="0%" y1="0%" x2="0%" y2="100%">
       <stop offset="0%" stop-color="#EEF2FF" />
       <stop offset="100%" stop-color="#FFFFFF" />
     </linearGradient>
-    <marker id="arrow" markerWidth="16" markerHeight="16" refX="11" refY="8" orient="auto">
-      <path d="M0,0 L16,8 L0,16 Z" fill="#4C1D95" />
+    <marker id="arrowhead" markerWidth="12" markerHeight="12" refX="9" refY="6" orient="auto">
+      <path d="M0,0 L12,6 L0,12 Z" fill="#4C1D95" />
     </marker>
   </defs>
-  <rect class="bg" width="1400" height="1600"/>
+  <rect class="bg" width="1800" height="1900"/>
 
   <!-- lane backgrounds -->
-  <g transform="translate(60,120)">
-    <rect class="lane" width="300" height="1340"/>
-    <text class="lane-title" x="20" y="60">入口过滤</text>
+  <g transform="translate(80,160)">
+    <rect class="lane" width="360" height="1600"/>
+    <text class="lane-title" x="20" y="70">入口过滤</text>
   </g>
-  <g transform="translate(380,120)">
-    <rect class="lane" width="300" height="1340"/>
-    <text class="lane-title" x="20" y="60">名单 &amp; 副作用</text>
+  <g transform="translate(520,160)">
+    <rect class="lane" width="360" height="1600"/>
+    <text class="lane-title" x="20" y="70">名单 &amp; 副作用</text>
   </g>
-  <g transform="translate(700,120)">
-    <rect class="lane" width="300" height="1340"/>
-    <text class="lane-title" x="20" y="60">模式决策</text>
+  <g transform="translate(960,160)">
+    <rect class="lane" width="360" height="1600"/>
+    <text class="lane-title" x="20" y="70">模式决策</text>
   </g>
-  <g transform="translate(1020,120)">
-    <rect class="lane" width="300" height="1340"/>
-    <text class="lane-title" x="20" y="60">终态</text>
-  </g>
-
-  <!-- nodes lane 1 -->
-  <g class="node terminal" transform="translate(100,200)">
-    <rect width="240" height="110"/>
-    <text x="120" y="60" text-anchor="middle">客户端请求<tspan x="120" dy="34">UDP/TCP :53</tspan></text>
-  </g>
-  <g class="node" transform="translate(100,350)">
-    <rect width="240" height="150"/>
-    <text x="120" y="50" text-anchor="middle">switch6/5<tspan x="120" dy="32">屏蔽 AAAA / SOA / PTR / HTTPS</tspan></text>
-  </g>
-  <g class="node" transform="translate(100,540)">
-    <rect width="240" height="150"/>
-    <text x="120" y="50" text-anchor="middle">DDNS / 重写<tspan x="120" dy="32">命中 ddnslist → 国内返回</tspan><tspan x="120" dy="32">rewrite → 上游查询</tspan></text>
-  </g>
-  <g class="node" transform="translate(100,750)">
-    <rect width="240" height="200"/>
-    <text x="120" y="50" text-anchor="middle">名单 &amp; 插件<tspan x="120" dy="32">黑名单、无V4/V6</tspan><tspan x="120" dy="32">AdGuard / 在线广告</tspan><tspan x="120" dy="32">switch2 客户端</tspan></text>
+  <g transform="translate(1400,160)">
+    <rect class="lane" width="360" height="1600"/>
+    <text class="lane-title" x="20" y="70">终态</text>
   </g>
 
-  <!-- lane2 nodes -->
-  <g class="node" transform="translate(420,260)">
-    <rect width="240" height="160"/>
-    <text x="120" y="50" text-anchor="middle">灰名单<tspan x="120" dy="32">fakeip (sing-box)</tspan></text>
+  <!-- lane 1 nodes -->
+  <g class="node terminal" transform="translate(140,260)">
+    <rect width="300" height="140"/>
+    <text x="150" y="80" text-anchor="middle">客户端请求<tspan x="150" dy="40">UDP/TCP :53</tspan></text>
   </g>
-  <g class="node" transform="translate(420,450)">
-    <rect width="240" height="200"/>
-    <text x="120" y="50" text-anchor="middle">白名单<tspan x="120" dy="32">国内查询 + nov4/nov6</tspan><tspan x="120" dy="32">CNtoMihomo? → fakeip (mihomo)</tspan><tspan x="120" dy="32">否则 real IP</tspan></text>
+  <g class="node" transform="translate(140,440)">
+    <rect width="300" height="170"/>
+    <text x="150" y="70" text-anchor="middle">switch6 / switch5<tspan x="150" dy="40">屏蔽 AAAA / SOA / PTR / HTTPS</tspan></text>
   </g>
-  <g class="node" transform="translate(420,700)">
-    <rect width="240" height="200"/>
-    <text x="120" y="50" text-anchor="middle">自/在线清单<tspan x="120" dy="32">国外 → fakeip (sing-box)</tspan><tspan x="120" dy="32">国内 → local_cn_scan</tspan><tspan x="120" dy="32">均未命中 → mode_entry</tspan></text>
+  <g class="node" transform="translate(140,640)">
+    <rect width="300" height="170"/>
+    <text x="150" y="60" text-anchor="middle">DDNS &amp; rewrite<tspan x="150" dy="38">命中 ddnslist → 国内</tspan><tspan x="150" dy="34">rewrite → 指定上游</tspan></text>
   </g>
-  <g class="node effect" transform="translate(420,950)">
-    <rect width="240" height="220"/>
-    <text x="120" y="50" text-anchor="middle">副作用<tspan x="120" dy="32">加入自生成国内/国外</tspan><tspan x="120" dy="32">写入 nov4 / nov6</tspan><tspan x="120" dy="32">灰名单同步 sing-box / mihomo</tspan></text>
-  </g>
-
-  <!-- lane3 nodes -->
-  <g class="node" transform="translate(740,360)">
-    <rect width="240" height="160"/>
-    <text x="120" y="50" text-anchor="middle">mode_entry<tspan x="120" dy="32">兼容 vs 安全</tspan></text>
-  </g>
-  <g class="node" transform="translate(740,560)">
-    <rect width="240" height="210"/>
-    <text x="120" y="50" text-anchor="middle">兼容模式<tspan x="120" dy="32">国内优先，rcode0 无AAAA → nov6</tspan><tspan x="120" dy="32">国外 IP → fakeip</tspan><tspan x="120" dy="32">国内 IP → real/Mihomo</tspan></text>
-  </g>
-  <g class="node" transform="translate(740,820)">
-    <rect width="240" height="210"/>
-    <text x="120" y="50" text-anchor="middle">安全模式<tspan x="120" dy="32">国外优先，逻辑与兼容类似</tspan><tspan x="120" dy="32">国内补查失败 → nov4</tspan><tspan x="120" dy="32">中国 IP → real/Mihomo</tspan></text>
+  <g class="node" transform="translate(140,840)">
+    <rect width="300" height="220"/>
+    <text x="150" y="60" text-anchor="middle">名单 / 插件<tspan x="150" dy="36">黑名单、无V4/V6</tspan><tspan x="150" dy="34">AdGuard / 在线广告</tspan><tspan x="150" dy="34">switch2 客户端白名单</tspan></text>
   </g>
 
-  <!-- lane4 nodes -->
-  <g class="node terminal" transform="translate(1060,320)">
-    <rect width="240" height="140"/>
-    <text x="120" y="60" text-anchor="middle">终止 / NXDOMAIN<tspan x="120" dy="32">黑名单 / 无Vx / 广告</tspan></text>
+  <!-- lane 2 nodes -->
+  <g class="node" transform="translate(580,320)">
+    <rect width="300" height="170"/>
+    <text x="150" y="60" text-anchor="middle">灰名单<tspan x="150" dy="36">fakeip (sing-box)</tspan></text>
   </g>
-  <g class="node terminal" transform="translate(1060,520)">
-    <rect width="240" height="180"/>
-    <text x="120" y="60" text-anchor="middle">返回 real IP<tspan x="120" dy="32">local_ddns / local_client / rewrite</tspan><tspan x="120" dy="32">模式下国内结果</tspan></text>
+  <g class="node" transform="translate(580,520)">
+    <rect width="300" height="220"/>
+    <text x="150" y="60" text-anchor="middle">白名单<tspan x="150" dy="36">国内查询 + nov4/nov6</tspan><tspan x="150" dy="34">CNtoMihomo? → fakeip (mihomo)</tspan><tspan x="150" dy="34">否则 real IP</tspan></text>
   </g>
-  <g class="node terminal" transform="translate(1060,750)">
-    <rect width="240" height="180"/>
-    <text x="120" y="60" text-anchor="middle">返回 fake IP<tspan x="120" dy="32">灰名单 / 国外清单 / 模式结果</tspan><tspan x="120" dy="32">sing-box / mihomo</tspan></text>
+  <g class="node" transform="translate(580,780)">
+    <rect width="300" height="220"/>
+    <text x="150" y="60" text-anchor="middle">自/在线清单<tspan x="150" dy="36">国外 → fakeip (sing-box)</tspan><tspan x="150" dy="34">国内 → local_cn_scan</tspan><tspan x="150" dy="34">均未命中 → mode_entry</tspan></text>
+  </g>
+  <g class="node effect" transform="translate(580,1060)">
+    <rect width="300" height="240"/>
+    <text x="150" y="60" text-anchor="middle">副作用<tspan x="150" dy="36">17.0.0.0/8 → 自生成国内</tspan><tspan x="150" dy="34">rcode0 无 IP → 写入 nov4 / nov6</tspan><tspan x="150" dy="34">灰名单同步 sing-box / mihomo</tspan></text>
+  </g>
+
+  <!-- lane 3 nodes -->
+  <g class="node" transform="translate(1020,420)">
+    <rect width="300" height="170"/>
+    <text x="150" y="70" text-anchor="middle">mode_entry<tspan x="150" dy="38">兼容 vs 安全</tspan></text>
+  </g>
+  <g class="node" transform="translate(1020,630)">
+    <rect width="300" height="230"/>
+    <text x="150" y="60" text-anchor="middle">兼容模式（国内优先）<tspan x="150" dy="36">rcode0 无AAAA → 记录 nov6</tspan><tspan x="150" dy="34">rcode0 无A → 国外补查</tspan><tspan x="150" dy="34">国外 IP → fakeip；国内 IP → real/Mihomo</tspan></text>
+  </g>
+  <g class="node" transform="translate(1020,920)">
+    <rect width="300" height="230"/>
+    <text x="150" y="60" text-anchor="middle">安全模式（国外优先）<tspan x="150" dy="36">rcode0 无AAAA → 记录 nov6</tspan><tspan x="150" dy="34">rcode0 无A → 国内补查</tspan><tspan x="150" dy="34">中国 IP → real/Mihomo</tspan></text>
+  </g>
+
+  <!-- lane 4 nodes -->
+  <g class="node terminal" transform="translate(1460,360)">
+    <rect width="300" height="160"/>
+    <text x="150" y="80" text-anchor="middle">终止 / NXDOMAIN<tspan x="150" dy="38">黑名单 / 无Vx / 广告</tspan></text>
+  </g>
+  <g class="node terminal" transform="translate(1460,570)">
+    <rect width="300" height="200"/>
+    <text x="150" y="70" text-anchor="middle">返回 real IP<tspan x="150" dy="36">local_ddns / local_client / rewrite</tspan><tspan x="150" dy="34">模式下国内结果</tspan></text>
+  </g>
+  <g class="node terminal" transform="translate(1460,820)">
+    <rect width="300" height="200"/>
+    <text x="150" y="70" text-anchor="middle">返回 fake IP<tspan x="150" dy="36">灰名单 / 国外清单 / 模式结果</tspan><tspan x="150" dy="34">sing-box / mihomo</tspan></text>
   </g>
 
   <!-- arrows -->
-  <path class="arrow" d="M220 310 L220 350"/>
-  <path class="arrow" d="M220 500 L220 540"/>
-  <path class="arrow" d="M220 690 L220 750"/>
-  <path class="arrow" d="M340 820 C380 820 420 440 420 440"/>
-  <path class="arrow" d="M540 420 L740 420"/>
-  <path class="arrow" d="M540 660 L740 620"/>
-  <path class="arrow" d="M540 910 L740 870"/>
-  <path class="arrow" d="M980 400 L1060 400"/>
-  <path class="arrow" d="M980 620 L1060 610"/>
-  <path class="arrow" d="M980 880 L1060 840"/>
-  <path class="arrow" d="M540 1090 L540 1180"/>
-  <path class="arrow" d="M540 1180 C640 1180 880 1030 880 1030"/>
-  <text class="arrow-label" x="320" y="890">未命中 →</text>
+  <path class="arrow" d="M290 410 L290 440"/>
+  <path class="arrow" d="M290 610 L290 640"/>
+  <path class="arrow" d="M290 820 L290 840"/>
+  <path class="arrow" d="M460 930 C500 930 560 440 560 440"/>
+  <path class="arrow" d="M730 480 L1020 480"/>
+  <path class="arrow" d="M730 720 L1020 690"/>
+  <path class="arrow" d="M730 990 L1020 960"/>
+  <path class="arrow" d="M1340 430 L1460 430"/>
+  <path class="arrow" d="M1340 660 L1460 640"/>
+  <path class="arrow" d="M1340 930 L1460 920"/>
+  <path class="arrow" d="M730 1250 L730 1330"/>
+  <path class="arrow" d="M730 1330 C860 1330 1100 1180 1100 1180"/>
+  <text class="arrow-label" x="520" y="1020">未命中 →</text>
 </svg>
