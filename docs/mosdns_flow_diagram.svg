@@ -15,6 +15,12 @@
       .label { fill: #000; font-size: 11px; font-weight: bold; }
     </style>
 
+    <!-- 渐变背景 -->
+    <linearGradient id="backgroundGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#e8f4f8;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#ffffff;stop-opacity:1" />
+    </linearGradient>
+
     <!-- 箭头标记 -->
     <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
       <polygon points="0 0, 10 3, 0 6" fill="#424242" />
@@ -26,6 +32,9 @@
       <polygon points="0 0, 10 3, 0 6" fill="#f44336" />
     </marker>
   </defs>
+
+  <!-- 背景 -->
+  <rect x="0" y="0" width="1400" height="2800" fill="url(#backgroundGradient)"/>
 
   <!-- 标题 -->
   <text x="700" y="30" style="font-size: 24px; font-weight: bold; text-anchor: middle;">mosdns 请求处理流程图</text>
