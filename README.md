@@ -77,4 +77,4 @@ fakeip分流大法总教程：https://drive.google.com/drive/u/1/folders/1ldD2Xq
   ```
 
 - 1080p 版本的 SVG（`mosdns_request_flow_1080p.svg`）通过缩放复用 4K 布局，并加倍字体确保常规显示器也能清晰阅读。
-
+- **注意:** 编辑 SVG 时务必使用 `&amp;`/`&lt;` 等实体转义特殊字符，避免浏览器解析失败。

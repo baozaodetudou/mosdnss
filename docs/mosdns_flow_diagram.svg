@@ -32,7 +32,7 @@
   </g>
   <g transform="translate(380,120)">
     <rect class="lane" width="300" height="1340"/>
-    <text class="lane-title" x="20" y="60">名单 & 副作用</text>
+    <text class="lane-title" x="20" y="60">名单 &amp; 副作用</text>
   </g>
   <g transform="translate(700,120)">
     <rect class="lane" width="300" height="1340"/>
@@ -58,7 +58,7 @@
   </g>
   <g class="node" transform="translate(100,750)">
     <rect width="240" height="200"/>
-    <text x="120" y="50" text-anchor="middle">名单 & 插件<tspan x="120" dy="32">黑名单、无V4/V6</tspan><tspan x="120" dy="32">AdGuard / 在线广告</tspan><tspan x="120" dy="32">switch2 客户端</tspan></text>
+    <text x="120" y="50" text-anchor="middle">名单 &amp; 插件<tspan x="120" dy="32">黑名单、无V4/V6</tspan><tspan x="120" dy="32">AdGuard / 在线广告</tspan><tspan x="120" dy="32">switch2 客户端</tspan></text>
   </g>
 
   <!-- lane2 nodes -->

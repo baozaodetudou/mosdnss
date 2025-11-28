@@ -41,7 +41,7 @@
     </g>
     <g class="card" transform="translate(120,520)">
       <rect width="1120" height="160"/>
-      <text x="560" y="60" text-anchor="middle">DDNS & 国内查询<tspan x="560" dy="40">命中 → 国内返回；未命中 → 名单/插件检查</tspan></text>
+      <text x="560" y="60" text-anchor="middle">DDNS &amp; 国内查询<tspan x="560" dy="40">命中 → 国内返回；未命中 → 名单/插件检查</tspan></text>
     </g>
     <g class="card" transform="translate(120,720)">
       <rect width="1120" height="180"/>
@@ -51,7 +51,7 @@
 
   <g class="card" transform="translate(240,1020)">
     <rect width="1120" height="200"/>
-    <text x="560" y="60" text-anchor="middle">重写 & 类型判断<tspan x="560" dy="38">命中 rewrite → 上游查询；仅 A/AAAA 进入名单分流</tspan><tspan x="560" dy="36">其余 geosite_cn 国内/国外直接返回</tspan></text>
+    <text x="560" y="60" text-anchor="middle">重写 &amp; 类型判断<tspan x="560" dy="38">命中 rewrite → 上游查询；仅 A/AAAA 进入名单分流</tspan><tspan x="560" dy="36">其余 geosite_cn 国内/国外直接返回</tspan></text>
   </g>
 
   <!-- 名单阶段 -->

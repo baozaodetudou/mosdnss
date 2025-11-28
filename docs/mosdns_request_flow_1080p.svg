@@ -61,15 +61,15 @@
     </g>
     <g class="card" transform="translate(140,610)">
       <rect width="520" height="170"/>
-      <text x="260" y="60" text-anchor="middle">DDNS & 国内查询<tspan x="260" dy="40">命中 ddnslist → 国内返回</tspan><tspan x="260" dy="36">未命中 → 进入名单/插件检查</tspan></text>
+      <text x="260" y="60" text-anchor="middle">DDNS &amp; 国内查询<tspan x="260" dy="40">命中 ddnslist → 国内返回</tspan><tspan x="260" dy="36">未命中 → 进入名单/插件检查</tspan></text>
     </g>
     <g class="card" transform="translate(140,840)">
       <rect width="520" height="220"/>
-      <text x="260" y="60" text-anchor="middle">名单 / 插件检查<tspan x="260" dy="40">switch1 黑名单、无V4/V6 组合</tspan><tspan x="260" dy="36">AdGuard 插件 & 在线广告域</tspan><tspan x="260" dy="36">客户端白名单 (switch2)</tspan></text>
+      <text x="260" y="60" text-anchor="middle">名单 / 插件检查<tspan x="260" dy="40">switch1 黑名单、无V4/V6 组合</tspan><tspan x="260" dy="36">AdGuard 插件 &amp; 在线广告域</tspan><tspan x="260" dy="36">客户端白名单 (switch2)</tspan></text>
     </g>
     <g class="card" transform="translate(140,1110)">
       <rect width="520" height="220"/>
-      <text x="260" y="60" text-anchor="middle">重写 & 类型判定<tspan x="260" dy="40">命中 rewrite → 上游查询</tspan><tspan x="260" dy="36">仅 A/AAAA 进入名单分流</tspan><tspan x="260" dy="36">其余按 geosite_cn 国内/国外处理</tspan></text>
+      <text x="260" y="60" text-anchor="middle">重写 &amp; 类型判定<tspan x="260" dy="40">命中 rewrite → 上游查询</tspan><tspan x="260" dy="36">仅 A/AAAA 进入名单分流</tspan><tspan x="260" dy="36">其余按 geosite_cn 国内/国外处理</tspan></text>
     </g>
 
     <!-- 主分流卡片 -->
