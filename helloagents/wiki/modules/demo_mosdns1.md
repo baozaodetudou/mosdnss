@@ -38,7 +38,7 @@
 
 ## 参考资料
 - [docs/mosdns1_request_flow.md](../../docs/mosdns1_request_flow.md): 详细描述 `start --dir demo/mosdns1` 后一次查询的分层流程、标记与开关含义，是排查实际请求路径的首选文档。
-- [docs/mosdns_request_flow.svg](../../docs/mosdns_request_flow.svg): demo 请求流程图，覆盖入口过滤、名单落点、兼容/安全模式泳道，并用虚线标注列表写入等副作用，可配合 `.mmd` 源文件重建图形。
+- [docs/mosdns_request_flow.svg](../../docs/mosdns_request_flow.svg): 3840×2160 布局的 demo 请求流程图，覆盖入口过滤、名单落点、兼容/安全模式泳道，并用虚线标注列表写入等副作用，可配合 `.mmd` 源文件重建。
 - [docs/mosdns_request_flow.mmd](../../docs/mosdns_request_flow.mmd): Mermaid 源文件，运行 `npx @mermaid-js/mermaid-cli -i docs/mosdns_request_flow.mmd -o docs/mosdns_request_flow.svg` 可再生成 SVG。
 
 ## 变更历史
