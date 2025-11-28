@@ -1,287 +1,124 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 2800" font-family="Arial, sans-serif">
-  <!-- 定义样式 -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 1600" aria-labelledby="title desc" role="img">
+  <title id="title">mosdns 请求处理摘要</title>
+  <desc id="desc">手绘总览图，按四个阶段展示主要决策，字体放大并采用统一配色。</desc>
   <defs>
     <style>
-      .box { fill: #e3f2fd; stroke: #1976d2; stroke-width: 2; }
-      .decision { fill: #fff3e0; stroke: #f57c00; stroke-width: 2; }
-      .process { fill: #f1f8e9; stroke: #689f38; stroke-width: 2; }
-      .endpoint { fill: #fce4ec; stroke: #c2185b; stroke-width: 2; }
-      .cache { fill: #f3e5f5; stroke: #7b1fa2; stroke-width: 2; }
-      .text { fill: #000; font-size: 14px; text-anchor: middle; }
-      .small-text { fill: #000; font-size: 12px; text-anchor: middle; }
-      .arrow { stroke: #424242; stroke-width: 2; fill: none; marker-end: url(#arrowhead); }
-      .yes-arrow { stroke: #4caf50; stroke-width: 2; fill: none; marker-end: url(#arrowhead-yes); }
-      .no-arrow { stroke: #f44336; stroke-width: 2; fill: none; marker-end: url(#arrowhead-no); }
-      .label { fill: #000; font-size: 11px; font-weight: bold; }
+      :root { font-family: 'LXGW WenKai', 'Inter', 'Noto Sans SC', sans-serif; }
+      .bg { fill: url(#bg); }
+      .lane { fill: #F8F5FF; stroke: #C7B9FF; stroke-width: 3; rx: 24; }
+      .lane-title { font-size: 40px; font-weight: 600; fill: #4C1D95; }
+      .node rect { fill: #FFFFFF; stroke: #4C1D95; stroke-width: 3; rx: 20; }
+      .node text { font-size: 28px; fill: #0F172A; font-weight: 500; }
+      .node tspan { font-size: 24px; fill: #334155; }
+      .terminal rect { fill: #4C1D95; stroke: #31186E; }
+      .terminal text, .terminal tspan { fill: #FFFFFF; }
+      .arrow { stroke: #4C1D95; stroke-width: 6; fill: none; marker-end: url(#arrow); }
+      .arrow-label { font-size: 22px; fill: #4C1D95; font-weight: 600; }
     </style>
-
-    <!-- 渐变背景 -->
-    <linearGradient id="backgroundGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" style="stop-color:#e8f4f8;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#ffffff;stop-opacity:1" />
+    <linearGradient id="bg" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#EEF2FF" />
+      <stop offset="100%" stop-color="#FFFFFF" />
     </linearGradient>
-
-    <!-- 箭头标记 -->
-    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
-      <polygon points="0 0, 10 3, 0 6" fill="#424242" />
-    </marker>
-    <marker id="arrowhead-yes" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
-      <polygon points="0 0, 10 3, 0 6" fill="#4caf50" />
-    </marker>
-    <marker id="arrowhead-no" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
-      <polygon points="0 0, 10 3, 0 6" fill="#f44336" />
+    <marker id="arrow" markerWidth="20" markerHeight="20" refX="14" refY="10" orient="auto">
+      <path d="M0,0 L20,10 L0,20 Z" fill="#4C1D95" />
     </marker>
   </defs>
+  <rect class="bg" width="1400" height="1600"/>
 
-  <!-- 背景 -->
-  <rect x="0" y="0" width="1400" height="2800" fill="url(#backgroundGradient)"/>
-
-  <!-- 标题 -->
-  <text x="700" y="30" style="font-size: 24px; font-weight: bold; text-anchor: middle;">mosdns 请求处理流程图</text>
-
-  <!-- 客户端请求 -->
-  <rect x="600" y="60" width="200" height="60" rx="10" class="endpoint"/>
-  <text x="700" y="95" class="text">客户端 DNS 请求</text>
-  <text x="700" y="110" class="small-text">(UDP/TCP :53)</text>
-
-  <!-- 箭头 -->
-  <path d="M 700 120 L 700 160" class="arrow"/>
-
-  <!-- 入口监听器 -->
-  <rect x="600" y="160" width="200" height="50" rx="5" class="box"/>
-  <text x="700" y="190" class="text">udp_all / tcp_all</text>
-
-  <path d="M 700 210 L 700 240" class="arrow"/>
-
-  <!-- sequence_6666 入口 -->
-  <rect x="550" y="240" width="300" height="50" rx="5" class="process"/>
-  <text x="700" y="270" class="text">sequence_6666 (入口序列)</text>
-
-  <path d="M 700 290 L 700 320" class="arrow"/>
-
-  <!-- 协议过滤 -->
-  <polygon points="700,320 850,370 700,420 550,370" class="decision"/>
-  <text x="700" y="365" class="small-text">switch6: 屏蔽 AAAA?</text>
-  <text x="700" y="380" class="small-text">switch5: 屏蔽 SOA/PTR/HTTPS?</text>
-
-  <path d="M 850 370 L 950 370 L 950 2700" class="no-arrow"/>
-  <text x="900 370" class="label" fill="#f44336">拒绝</text>
-
-  <path d="M 700 420 L 700 470" class="yes-arrow"/>
-  <text x="650" y="450" class="label" fill="#4caf50">通过</text>
-
-  <!-- DDNS 检查 -->
-  <polygon points="700,470 850,520 700,570 550,520" class="decision"/>
-  <text x="700" y="515" class="small-text">域名在 ddnslist?</text>
-  <text x="700" y="530" class="small-text">(mark 1)</text>
-
-  <path d="M 850 520 L 1050 520 L 1050 1900" class="yes-arrow"/>
-  <text x="950" y="515" class="label" fill="#4caf50">是</text>
-  <text x="1080" y="750" class="small-text">forward_local</text>
-  <text x="1080" y="765" class="small-text">(国内DNS)</text>
-
-  <path d="M 700 570 L 700 620" class="no-arrow"/>
-  <text x="650" y="600" class="label" fill="#f44336">否</text>
-
-  <!-- 黑名单检查 -->
-  <polygon points="700,620 850,670 700,720 550,670" class="decision"/>
-  <text x="700" y="665" class="small-text">switch1: 启用黑名单?</text>
-  <text x="700" y="680" class="small-text">(blocklist, mark 2)</text>
-
-  <path d="M 850 670 L 950 670 L 950 2700" class="yes-arrow"/>
-  <text x="900" y="665" class="label" fill="#4caf50">命中</text>
-
-  <path d="M 700 720 L 700 770" class="no-arrow"/>
-
-  <!-- AdGuard 过滤 -->
-  <polygon points="700,770 850,820 700,870 550,820" class="decision"/>
-  <text x="700" y="815" class="small-text">switch7 &amp; adguard?</text>
-  <text x="700" y="830" class="small-text">(reject 3)</text>
-
-  <path d="M 850 820 L 950 820 L 950 2700" class="yes-arrow"/>
-  <text x="900" y="815" class="label" fill="#4caf50">拒绝</text>
-
-  <path d="M 700 870 L 700 920" class="no-arrow"/>
-
-  <!-- 客户端放行检查 -->
-  <polygon points="700,920 850,970 700,1020 550,970" class="decision"/>
-  <text x="700" y="960" class="small-text">switch2 &amp; client_ip?</text>
-  <text x="700" y="975" class="small-text">(mark 3)</text>
-  <text x="700" y="990" class="small-text">客户端IP白名单</text>
-
-  <path d="M 850 970 L 1050 970 L 1050 1900" class="yes-arrow"/>
-  <text x="950" y="965" class="label" fill="#4caf50">非白名单</text>
-  <text x="1080" y="1200" class="small-text">sequence_local</text>
-  <text x="1080" y="1215" class="small-text">(直接国内DNS)</text>
-
-  <path d="M 700 1020 L 700 1070" class="no-arrow"/>
-  <text x="650" y="1050" class="label" fill="#f44336">白名单</text>
-
-  <!-- 缓存检查 -->
-  <polygon points="700,1070 850,1120 700,1170 550,1120" class="decision"/>
-  <text x="700" y="1110" class="small-text">cache_all 缓存命中?</text>
-  <text x="700" y="1125" class="small-text">(switch3/4)</text>
-
-  <path d="M 850 1120 L 950 1120 L 950 2700" class="yes-arrow"/>
-  <text x="900" y="1115" class="label" fill="#4caf50">命中</text>
-
-  <path d="M 700 1170 L 700 1220" class="no-arrow"/>
-  <text x="650" y="1200" class="label" fill="#f44336">未命中</text>
-
-  <!-- sequence_main 主分流 -->
-  <rect x="550" y="1220" width="300" height="50" rx="5" class="process"/>
-  <text x="700" y="1250" class="text" style="font-weight: bold;">sequence_main (主分流)</text>
-
-  <path d="M 700 1270 L 700 1320" class="arrow"/>
-
-  <!-- rewrite 重写 -->
-  <rect x="600" y="1320" width="200" height="40" rx="5" class="box"/>
-  <text x="700" y="1345" class="small-text">domain rewrite (如需)</text>
-
-  <path d="M 700 1360 L 700 1410" class="arrow"/>
-
-  <!-- 非 A/AAAA 检查 -->
-  <polygon points="700,1410 850,1460 700,1510 550,1460" class="decision"/>
-  <text x="700" y="1450" class="small-text">非 A/AAAA 查询?</text>
-  <text x="700" y="1465" class="small-text">(mark 66/99)</text>
-
-  <path d="M 850 1460 L 1050 1460 L 1050 1900" class="yes-arrow"/>
-  <text x="950" y="1455" class="label" fill="#4caf50">是</text>
-  <text x="1080" y="1455" class="small-text">按geosite_cn分流</text>
-
-  <path d="M 700 1510 L 700 1560" class="no-arrow"/>
-
-  <!-- 灰名单检查 -->
-  <polygon points="700,1560 850,1610 700,1660 550,1610" class="decision"/>
-  <text x="700" y="1600" class="small-text">域名在 greylist?</text>
-  <text x="700" y="1615" class="small-text">(mark 22)</text>
-
-  <path d="M 850 1610 L 1150 1610 L 1150 2400" class="yes-arrow"/>
-  <text x="1000" y="1605" class="label" fill="#4caf50">是</text>
-  <text x="1180" y="1900" class="small-text">sequence_fakeip</text>
-
-  <path d="M 700 1660 L 700 1710" class="no-arrow"/>
-
-  <!-- 白名单检查 -->
-  <polygon points="700,1710 850,1760 700,1810 550,1760" class="decision"/>
-  <text x="700" y="1750" class="small-text">域名在 whitelist?</text>
-  <text x="700" y="1765" class="small-text">(mark 11)</text>
-
-  <path d="M 850 1760 L 1050 1760 L 1050 1900" class="yes-arrow"/>
-  <text x="950" y="1755" class="label" fill="#4caf50">是</text>
-  <text x="1080" y="1750" class="small-text">sequence_local</text>
-
-  <path d="M 700 1810 L 700 1860" class="no-arrow"/>
-
-  <!-- realip 检查 -->
-  <polygon points="700,1860 850,1910 700,1960 550,1910" class="decision"/>
-  <text x="700" y="1900" class="small-text">域名在 realiplist?</text>
-  <text x="700" y="1915" class="small-text">(mark 33)</text>
-
-  <path d="M 850 1910 L 1150 1910 L 1150 2200" class="yes-arrow"/>
-  <text x="1000" y="1905" class="label" fill="#4caf50">是</text>
-  <text x="1180" y="2050" class="small-text">sequence_google</text>
-
-  <path d="M 700 1960 L 700 2010" class="no-arrow"/>
-
-  <!-- 并发匹配 gen_conc -->
-  <rect x="550" y="2010" width="300" height="60" rx="5" class="process"/>
-  <text x="700" y="2035" class="small-text">并发匹配 (gen_conc)</text>
-  <text x="700" y="2050" class="small-text">返回黑洞IP标签:</text>
-  <text x="700" y="2065" class="small-text">127.0.0.1/2/3</text>
-
-  <path d="M 700 2070 L 700 2120" class="arrow"/>
-
-  <!-- 黑洞IP判断 -->
-  <polygon points="700,2120 850,2200 700,2280 550,2200" class="decision"/>
-  <text x="700" y="2180" class="small-text">resp_ip 黑洞匹配?</text>
-  <text x="700" y="2195" class="small-text">888(国内)/999(fakeip)</text>
-  <text x="700" y="2210" class="small-text">666(未命中)</text>
-
-  <!-- 国内路径 -->
-  <path d="M 550 2200 L 350 2200 L 350 1950 L 1050 1950" class="yes-arrow"/>
-  <text x="400" y="2195" class="label" fill="#4caf50">888</text>
-
-  <!-- FakeIP路径 -->
-  <path d="M 850 2200 L 1150 2200" class="yes-arrow"/>
-  <text x="1000" y="2195" class="label" fill="#4caf50">999</text>
-
-  <!-- 未命中 666 -->
-  <path d="M 700 2280 L 700 2350" class="no-arrow"/>
-  <text x="650" y="2320" class="label" fill="#f44336">666</text>
-
-  <!-- switch3 泄露模式判断 -->
-  <polygon points="700,2350 850,2400 700,2450 550,2400" class="decision"/>
-  <text x="700" y="2390" class="small-text">switch3 泄露模式?</text>
-  <text x="700" y="2405" class="small-text">(mark 68)</text>
-
-  <!-- 泄露模式 -->
-  <path d="M 550 2400 L 350 2400 L 350 2000 L 1050 2000" class="yes-arrow"/>
-  <text x="400" y="2395" class="label" fill="#4caf50">A(泄露)</text>
-  <text x="450" y="2100" class="small-text">先国内再国外</text>
-
-  <!-- 不泄露模式 -->
-  <path d="M 850 2400 L 1150 2400 L 1150 2250" class="no-arrow"/>
-  <text x="1000" y="2395" class="label" fill="#f44336">B(不泄露)</text>
-  <text x="1180" y="2300" class="small-text">直接国外+ECS</text>
-
-  <!-- sequence_local 国内DNS -->
-  <rect x="950" y="1900" width="200" height="100" rx="5" class="cache"/>
-  <text x="1050" y="1930" class="text" style="font-weight: bold;">sequence_local</text>
-  <text x="1050" y="1950" class="small-text">cache_cn</text>
-  <text x="1050" y="1965" class="small-text">forward_local</text>
-  <text x="1050" y="1980" class="small-text">(223.5.5.5, 221.130.33.60)</text>
-
-  <path d="M 1050 2000 L 1050 2700" class="arrow"/>
-
-  <!-- sequence_google 国外DNS -->
-  <rect x="1050" y="2200" width="200" height="100" rx="5" class="cache"/>
-  <text x="1150" y="2230" class="text" style="font-weight: bold;">sequence_google</text>
-  <text x="1150" y="2250" class="small-text">cache_google</text>
-  <text x="1150" y="2265" class="small-text">forward_google</text>
-  <text x="1150" y="2280" class="small-text">(DoH via SOCKS5)</text>
-
-  <path d="M 1150 2300 L 1150 2700" class="arrow"/>
-
-  <!-- sequence_fakeip -->
-  <rect x="1050" y="2400" width="200" height="100" rx="5" class="cache"/>
-  <text x="1150" y="2430" class="text" style="font-weight: bold;">sequence_fakeip</text>
-  <text x="1150" y="2450" class="small-text">forward_fakeip</text>
-  <text x="1150" y="2465" class="small-text">(udp://127.0.0.1:6666)</text>
-  <text x="1150" y="2480" class="small-text">sing-box/mihomo</text>
-
-  <path d="M 1150 2500 L 1150 2700" class="arrow"/>
-
-  <!-- 返回客户端 -->
-  <rect x="600" y="2700" width="200" height="60" rx="10" class="endpoint"/>
-  <text x="700" y="2735" class="text">返回 DNS 响应</text>
-
-  <!-- 图例 -->
-  <g transform="translate(50, 2600)">
-    <text x="0" y="0" style="font-size: 16px; font-weight: bold;">图例:</text>
-    <rect x="0" y="10" width="80" height="30" rx="5" class="endpoint"/>
-    <text x="90" y="30" class="small-text" style="text-anchor: start;">起始/结束</text>
-
-    <rect x="0" y="50" width="80" height="30" rx="5" class="decision"/>
-    <text x="90" y="70" class="small-text" style="text-anchor: start;">判断/决策</text>
-
-    <rect x="0" y="90" width="80" height="30" rx="5" class="process"/>
-    <text x="90" y="110" class="small-text" style="text-anchor: start;">处理/序列</text>
-
-    <rect x="0" y="130" width="80" height="30" rx="5" class="cache"/>
-    <text x="90" y="150" class="small-text" style="text-anchor: start;">缓存/上游</text>
+  <!-- lane backgrounds -->
+  <g transform="translate(60,120)">
+    <rect class="lane" width="300" height="1340"/>
+    <text class="lane-title" x="20" y="60">入口过滤</text>
+  </g>
+  <g transform="translate(380,120)">
+    <rect class="lane" width="300" height="1340"/>
+    <text class="lane-title" x="20" y="60">名单 & 副作用</text>
+  </g>
+  <g transform="translate(700,120)">
+    <rect class="lane" width="300" height="1340"/>
+    <text class="lane-title" x="20" y="60">模式决策</text>
+  </g>
+  <g transform="translate(1020,120)">
+    <rect class="lane" width="300" height="1340"/>
+    <text class="lane-title" x="20" y="60">终态</text>
   </g>
 
-  <!-- 注释 -->
-  <g transform="translate(100, 50)">
-    <text x="0" y="0" style="font-size: 12px; fill: #666;">
-      <tspan x="0" dy="0">默认配置:</tspan>
-      <tspan x="0" dy="15">• switch1=B (不启用黑名单)</tspan>
-      <tspan x="0" dy="15">• switch2=A (客户端IP检查开启)</tspan>
-      <tspan x="0" dy="15">• switch3=A (泄露模式)</tspan>
-      <tspan x="0" dy="15">• switch6=B (允许AAAA)</tspan>
-      <tspan x="0" dy="15">• switch7=A (启用AdGuard)</tspan>
-    </text>
+  <!-- nodes lane 1 -->
+  <g class="node terminal" transform="translate(100,200)">
+    <rect width="240" height="110"/>
+    <text x="120" y="60" text-anchor="middle">客户端请求<tspan x="120" dy="34">UDP/TCP :53</tspan></text>
+  </g>
+  <g class="node" transform="translate(100,350)">
+    <rect width="240" height="150"/>
+    <text x="120" y="50" text-anchor="middle">switch6/5<tspan x="120" dy="32">屏蔽 AAAA / SOA / PTR / HTTPS</tspan></text>
+  </g>
+  <g class="node" transform="translate(100,540)">
+    <rect width="240" height="150"/>
+    <text x="120" y="50" text-anchor="middle">DDNS / 重写<tspan x="120" dy="32">命中 ddnslist → 国内返回</tspan><tspan x="120" dy="32">rewrite → 上游查询</tspan></text>
+  </g>
+  <g class="node" transform="translate(100,750)">
+    <rect width="240" height="200"/>
+    <text x="120" y="50" text-anchor="middle">名单 & 插件<tspan x="120" dy="32">黑名单、无V4/V6</tspan><tspan x="120" dy="32">AdGuard / 在线广告</tspan><tspan x="120" dy="32">switch2 客户端</tspan></text>
   </g>
 
+  <!-- lane2 nodes -->
+  <g class="node" transform="translate(420,260)">
+    <rect width="240" height="160"/>
+    <text x="120" y="50" text-anchor="middle">灰名单<tspan x="120" dy="32">fakeip (sing-box)</tspan></text>
+  </g>
+  <g class="node" transform="translate(420,450)">
+    <rect width="240" height="200"/>
+    <text x="120" y="50" text-anchor="middle">白名单<tspan x="120" dy="32">国内查询 + nov4/nov6</tspan><tspan x="120" dy="32">CNtoMihomo? → fakeip (mihomo)</tspan><tspan x="120" dy="32">否则 real IP</tspan></text>
+  </g>
+  <g class="node" transform="translate(420,700)">
+    <rect width="240" height="200"/>
+    <text x="120" y="50" text-anchor="middle">自/在线清单<tspan x="120" dy="32">国外 → fakeip (sing-box)</tspan><tspan x="120" dy="32">国内 → local_cn_scan</tspan><tspan x="120" dy="32">均未命中 → mode_entry</tspan></text>
+  </g>
+  <g class="node effect" transform="translate(420,950)">
+    <rect width="240" height="220"/>
+    <text x="120" y="50" text-anchor="middle">副作用<tspan x="120" dy="32">加入自生成国内/国外</tspan><tspan x="120" dy="32">写入 nov4 / nov6</tspan><tspan x="120" dy="32">灰名单同步 sing-box / mihomo</tspan></text>
+  </g>
+
+  <!-- lane3 nodes -->
+  <g class="node" transform="translate(740,360)">
+    <rect width="240" height="160"/>
+    <text x="120" y="50" text-anchor="middle">mode_entry<tspan x="120" dy="32">兼容 vs 安全</tspan></text>
+  </g>
+  <g class="node" transform="translate(740,560)">
+    <rect width="240" height="210"/>
+    <text x="120" y="50" text-anchor="middle">兼容模式<tspan x="120" dy="32">国内优先，rcode0 无AAAA → nov6</tspan><tspan x="120" dy="32">国外 IP → fakeip</tspan><tspan x="120" dy="32">国内 IP → real/Mihomo</tspan></text>
+  </g>
+  <g class="node" transform="translate(740,820)">
+    <rect width="240" height="210"/>
+    <text x="120" y="50" text-anchor="middle">安全模式<tspan x="120" dy="32">国外优先，逻辑与兼容类似</tspan><tspan x="120" dy="32">国内补查失败 → nov4</tspan><tspan x="120" dy="32">中国 IP → real/Mihomo</tspan></text>
+  </g>
+
+  <!-- lane4 nodes -->
+  <g class="node terminal" transform="translate(1060,320)">
+    <rect width="240" height="140"/>
+    <text x="120" y="60" text-anchor="middle">终止 / NXDOMAIN<tspan x="120" dy="32">黑名单 / 无Vx / 广告</tspan></text>
+  </g>
+  <g class="node terminal" transform="translate(1060,520)">
+    <rect width="240" height="180"/>
+    <text x="120" y="60" text-anchor="middle">返回 real IP<tspan x="120" dy="32">local_ddns / local_client / rewrite</tspan><tspan x="120" dy="32">模式下国内结果</tspan></text>
+  </g>
+  <g class="node terminal" transform="translate(1060,750)">
+    <rect width="240" height="180"/>
+    <text x="120" y="60" text-anchor="middle">返回 fake IP<tspan x="120" dy="32">灰名单 / 国外清单 / 模式结果</tspan><tspan x="120" dy="32">sing-box / mihomo</tspan></text>
+  </g>
+
+  <!-- arrows -->
+  <path class="arrow" d="M220 310 L220 350"/>
+  <path class="arrow" d="M220 500 L220 540"/>
+  <path class="arrow" d="M220 690 L220 750"/>
+  <path class="arrow" d="M340 820 C380 820 420 440 420 440"/>
+  <path class="arrow" d="M540 420 L740 420"/>
+  <path class="arrow" d="M540 660 L740 620"/>
+  <path class="arrow" d="M540 910 L740 870"/>
+  <path class="arrow" d="M980 400 L1060 400"/>
+  <path class="arrow" d="M980 620 L1060 610"/>
+  <path class="arrow" d="M980 880 L1060 840"/>
+  <path class="arrow" d="M540 1090 L540 1180"/>
+  <path class="arrow" d="M540 1180 C640 1180 880 1030 880 1030"/>
+  <text class="arrow-label" x="320" y="890">未命中 →</text>
 </svg>
