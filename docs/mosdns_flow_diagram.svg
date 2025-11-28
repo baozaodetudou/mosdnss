@@ -7,13 +7,17 @@
       .bg { fill: url(#bg); }
       .lane { fill: #F8F5FF; stroke: #C7B9FF; stroke-width: 4; rx: 36; }
       .lane-title { font-size: 48px; font-weight: 600; fill: #4C1D95; }
+      .legend { font-size: 26px; fill: #0F172A; }
       .node rect { fill: #FFFFFF; stroke: #4C1D95; stroke-width: 3; rx: 24; }
       .node text { font-size: 32px; fill: #0F172A; font-weight: 500; }
       .node tspan { font-size: 28px; fill: #334155; }
       .terminal rect { fill: #4C1D95; stroke: #31186E; }
       .terminal text, .terminal tspan { fill: #FFFFFF; }
+      .effect rect { fill: #FFF7E0; stroke: #D97706; }
+      .effect text, .effect tspan { fill: #7C2D12; }
       .arrow { stroke: #4C1D95; stroke-width: 2.5; fill: none; marker-end: url(#arrowhead); }
       .arrow-label { font-size: 26px; fill: #4C1D95; font-weight: 600; }
+      .label { font-size: 24px; fill: #4C1D95; font-weight: 600; text-anchor: middle; }
     </style>
     <linearGradient id="bg" x1="0%" y1="0%" x2="0%" y2="100%">
       <stop offset="0%" stop-color="#EEF2FF" />
@@ -24,6 +28,12 @@
     </marker>
   </defs>
   <rect class="bg" width="1800" height="1900"/>
+
+  <!-- 图例 -->
+  <g transform="translate(80,60)">
+    <rect width="420" height="70" rx="20" fill="#FFFFFF" stroke="#C7B9FF" stroke-width="2"/>
+    <text class="legend" x="20" y="45">★ 关键动作 · 自生成列表写入 / retry 补查 在箭头注释处显示</text>
+  </g>
 
   <!-- lane backgrounds -->
   <g transform="translate(80,160)">
@@ -78,6 +88,7 @@
     <rect width="300" height="240"/>
     <text x="150" y="60" text-anchor="middle">副作用<tspan x="150" dy="36">17.0.0.0/8 → 自生成国内</tspan><tspan x="150" dy="34">rcode0 无 IP → 写入 nov4 / nov6</tspan><tspan x="150" dy="34">灰名单同步 sing-box / mihomo</tspan></text>
   </g>
+  <text class="label" x="730" y="1040">★ 自生成列表写入</text>
 
   <!-- lane 3 nodes -->
   <g class="node" transform="translate(1020,420)">
@@ -92,6 +103,7 @@
     <rect width="300" height="230"/>
     <text x="150" y="60" text-anchor="middle">安全模式（国外优先）<tspan x="150" dy="36">rcode0 无AAAA → 记录 nov6</tspan><tspan x="150" dy="34">rcode0 无A → 国内补查</tspan><tspan x="150" dy="34">中国 IP → real/Mihomo</tspan></text>
   </g>
+  <text class="label" x="1170" y="910">★ retry_intl / retry_domestic</text>
 
   <!-- lane 4 nodes -->
   <g class="node terminal" transform="translate(1460,360)">
