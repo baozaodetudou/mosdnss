@@ -257,18 +257,28 @@ func (m *MixMatcher[T]) SetDefaultMatcher(s string) {
 	m.defaultMatcher = s
 }
 
-func (m *MixMatcher[T]) GetSubMatcher(typ string) WriteableMatcher[T] {
+func (m *MixMatcher[T]) getSubMatcher(typ string) (WriteableMatcher[T], uint8) {
 	switch typ {
 	case MatcherFull:
-		return m.full
+		return m.full, matcherHasFull
 	case MatcherDomain:
-		return m.domain
+		return m.domain, matcherHasDomain
 	case MatcherRegexp:
-		return m.regex
+		return m.regex, matcherHasRegexp
 	case MatcherKeyword:
-		return m.keyword
+		return m.keyword, matcherHasKeyword
 	}
-	return nil
+	return nil, 0
+}
+
+func (m *MixMatcher[T]) GetSubMatcher(typ string) WriteableMatcher[T] {
+	sm, present := m.getSubMatcher(typ)
+	if sm != nil {
+		// Keep the exported sub-matcher path consistent with Add. The caller
+		// may add a rule directly through the returned interface.
+		m.present |= present
+	}
+	return sm
 }
 
 var ErrNodefaultMatcher = errors.New("default matcher is not set")
@@ -282,23 +292,14 @@ func (m *MixMatcher[T]) Add(s string, v T) error {
 			return ErrNodefaultMatcher
 		}
 	}
-	sm := m.GetSubMatcher(typ)
+	sm, present := m.getSubMatcher(typ)
 	if sm == nil {
 		return fmt.Errorf("unsupported match type [%s]", typ)
 	}
 	if err := sm.Add(pattern, v); err != nil {
 		return err
 	}
-	switch typ {
-	case MatcherFull:
-		m.present |= matcherHasFull
-	case MatcherDomain:
-		m.present |= matcherHasDomain
-	case MatcherRegexp:
-		m.present |= matcherHasRegexp
-	case MatcherKeyword:
-		m.present |= matcherHasKeyword
-	}
+	m.present |= present
 	return nil
 }
 

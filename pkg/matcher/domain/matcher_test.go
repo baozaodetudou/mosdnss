@@ -96,6 +96,20 @@ func TestDomainMatcher(t *testing.T) {
 	assert("any.domain", true, 9)
 }
 
+func TestMixMatcherSubMatcherPresence(t *testing.T) {
+	m := NewMixMatcher[any]()
+	sub := m.GetSubMatcher(MatcherDomain)
+	if sub == nil {
+		t.Fatal("domain sub-matcher is nil")
+	}
+	if err := sub.Add("example.com", nil); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := m.Match("www.example.com"); !ok {
+		t.Fatal("rule added through GetSubMatcher did not match")
+	}
+}
+
 func assertInt(t testing.TB, want, got int) {
 	t.Helper()
 	if want != got {
