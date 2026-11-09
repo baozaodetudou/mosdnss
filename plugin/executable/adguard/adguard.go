@@ -78,15 +78,14 @@ func (rule *OnlineRule) MarshalJSON() ([]byte, error) {
 
 // AdguardRule 是插件的主结构体
 type AdguardRule struct {
-	mu           sync.RWMutex
-	reloadMu     sync.Mutex
-	dir          string
-	configFile   string
-	onlineRules  map[string]*OnlineRule
-	allowMatcher *domain.MixMatcher[struct{}]
-	denyMatcher  *domain.MixMatcher[struct{}]
-	httpClient   *http.Client
-	reloadID     atomic.Uint64
+	mu          sync.RWMutex
+	reloadMu    sync.Mutex
+	dir         string
+	configFile  string
+	onlineRules map[string]*OnlineRule
+	matchers    atomic.Pointer[matcherSnapshot]
+	httpClient  *http.Client
+	reloadID    atomic.Uint64
 
 	// 用于优雅关闭
 	ctx    context.Context
@@ -97,8 +96,13 @@ type AdguardRule struct {
 	subsMu      sync.RWMutex
 }
 
+type matcherSnapshot struct {
+	allow *domain.MixMatcher[struct{}]
+	deny  *domain.MixMatcher[struct{}]
+}
+
 // 确保实现了必要的接口
-var _ data_provider.RuleExporter = (*AdguardRule)(nil)        // 新增接口
+var _ data_provider.RuleExporter = (*AdguardRule)(nil)          // 新增接口
 var _ data_provider.DomainMatcherProvider = (*AdguardRule)(nil) // 原有接口
 
 // RuleReceiver 接口用于解耦解析和存储逻辑，使 parseRules 既能用于构建 Matcher 也能用于导出
@@ -172,13 +176,13 @@ func (p *AdguardRule) notifySubscribers() {
 		go cb()
 	}
 
-    // 新增：给订阅者一点时间完成它们的重载工作，然后统一回收
-    if len(subs) > 0 {
-        time.AfterFunc(time.Second*5, func() {
-            log.Println("[adguard_rule] post-notification GC triggered")
-            coremain.ManualGC()
-        })
-    }
+	// 新增：给订阅者一点时间完成它们的重载工作，然后统一回收
+	if len(subs) > 0 {
+		time.AfterFunc(time.Second*5, func() {
+			log.Println("[adguard_rule] post-notification GC triggered")
+			coremain.ManualGC()
+		})
+	}
 }
 
 // newAdguardRule 是插件的初始化函数
@@ -223,17 +227,18 @@ func newAdguardRule(bp *coremain.BP, args any) (any, error) {
 	// 创建可取消的上下文，用于优雅关闭
 	ctx, cancel := context.WithCancel(context.Background())
 
+	allowMatcher := domain.NewDomainMixMatcher()
+	denyMatcher := domain.NewDomainMixMatcher()
 	p := &AdguardRule{
-		dir:          cfg.Dir,
-		configFile:   filepath.Join(cfg.Dir, configFile),
-		onlineRules:  make(map[string]*OnlineRule),
-		allowMatcher: domain.NewDomainMixMatcher(),
-		denyMatcher:  domain.NewDomainMixMatcher(),
-		httpClient:   httpClient,
-		ctx:          ctx,
-		cancel:       cancel,
-		subscribers:  make([]func(), 0),
+		dir:         cfg.Dir,
+		configFile:  filepath.Join(cfg.Dir, configFile),
+		onlineRules: make(map[string]*OnlineRule),
+		httpClient:  httpClient,
+		ctx:         ctx,
+		cancel:      cancel,
+		subscribers: make([]func(), 0),
 	}
+	p.matchers.Store(&matcherSnapshot{allow: allowMatcher, deny: denyMatcher})
 
 	if err := p.loadConfig(); err != nil {
 		log.Printf("[adguard_rule] failed to load config file: %v. Starting with empty config.", err)
@@ -280,14 +285,16 @@ func (p *AdguardRule) GetDomainMatcher() domain.Matcher[struct{}] {
 
 // Match 实现了 domain.Matcher 接口
 func (p *AdguardRule) Match(domainStr string) (value struct{}, ok bool) {
-	p.mu.RLock()
-	defer p.mu.RUnlock()
-
-	if _, matched := p.allowMatcher.Match(domainStr); matched {
+	matchers := p.matchers.Load()
+	if matchers == nil {
 		return struct{}{}, false
 	}
 
-	if _, matched := p.denyMatcher.Match(domainStr); matched {
+	if _, matched := matchers.allow.Match(domainStr); matched {
+		return struct{}{}, false
+	}
+
+	if _, matched := matchers.deny.Match(domainStr); matched {
 		return struct{}{}, true
 	}
 
@@ -360,10 +367,8 @@ func (p *AdguardRule) reloadAllRules(ctx context.Context, initialLoad bool) {
 	log.Println("[adguard_rule] starting to reload all rules...")
 
 	p.mu.RLock()
-	allRulesSnapshot := make([]*OnlineRule, 0, len(p.onlineRules))
 	enabledRules := make([]*OnlineRule, 0)
 	for _, rule := range p.onlineRules {
-		allRulesSnapshot = append(allRulesSnapshot, rule)
 		if rule.Enabled {
 			enabledRules = append(enabledRules, rule)
 		}
@@ -388,17 +393,17 @@ func (p *AdguardRule) reloadAllRules(ctx context.Context, initialLoad bool) {
 		wg.Wait()
 	}
 
-	p.updateAllRuleCounts()
-
 	// 构建新的 Matcher (用于本插件的原有功能)
 	newAllowMatcher := domain.NewDomainMixMatcher()
 	newDenyMatcher := domain.NewDomainMixMatcher()
+	ruleCounts := make(map[string]int, len(enabledRules))
 	totalRuleCount := 0
 
 	for _, rule := range enabledRules {
 		file, err := os.Open(rule.localPath)
 		if err != nil {
 			log.Printf("[adguard_rule] WARN: skipping enabled rule '%s', cannot open local file %s: %v", rule.Name, rule.localPath, err)
+			ruleCounts[rule.ID] = 0
 			continue
 		}
 
@@ -409,57 +414,37 @@ func (p *AdguardRule) reloadAllRules(ctx context.Context, initialLoad bool) {
 		if err != nil {
 			log.Printf("[adguard_rule] ERROR: failed to parse rule file for '%s' (%s): %v", rule.Name, rule.localPath, err)
 		}
+		ruleCounts[rule.ID] = count
 		totalRuleCount += count
 	}
 
-	p.mu.Lock()
-	p.allowMatcher = newAllowMatcher
-	p.denyMatcher = newDenyMatcher
-	p.mu.Unlock()
+	// Matcher 只读不可变，构建完成后原子发布，查询无需持有配置锁。
+	p.matchers.Store(&matcherSnapshot{allow: newAllowMatcher, deny: newDenyMatcher})
+	p.updateRuleCounts(ruleCounts)
 
 	log.Printf("[adguard_rule] finished reloading. Total active rules from enabled lists: %d", totalRuleCount)
-	
-        newAllowMatcher = nil
-        newDenyMatcher = nil
 
 	// [关键]: 更新完成后，通知所有订阅者 (如 domain_mapper)
 	// 因为 Add/Delete/Enable/Disable/Update 最终都会走到这里，所以都能触发通知
 	p.notifySubscribers()
-        coremain.ManualGC()
+	coremain.ManualGC()
 }
 
-type counterCollector struct {
-	count int
-}
-func (c *counterCollector) Add(_ string, _ struct{}) error {
-	c.count++
-	return nil
-}
-
-// updateAllRuleCounts 遍历所有已知规则，并更新它们的 RuleCount 字段
-func (p *AdguardRule) updateAllRuleCounts() {
+// updateRuleCounts 保存构建 matcher 时顺手统计的规则数量，避免再次读取和解析大列表。
+func (p *AdguardRule) updateRuleCounts(counts map[string]int) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
 	var changed bool
-	for _, rule := range p.onlineRules {
-		file, err := os.Open(rule.localPath)
-		if err != nil {
-			if rule.RuleCount != 0 {
-				rule.RuleCount = 0
-				changed = true
+	for ruleID, rule := range p.onlineRules {
+		count, ok := counts[ruleID]
+		if !ok {
+			if _, err := os.Stat(rule.localPath); os.IsNotExist(err) {
+				count = 0
+			} else {
+				continue
 			}
-			continue
 		}
-		
-		// --- 关键修改开始 ---
-		// 使用计数器代替真实的 Matcher。
-		// 这样 parseRules 在运行过程中不会构建复杂的 Trie 树和正则对象
-		counter := &counterCollector{}
-		count, _ := parseRules(file, counter, counter) 
-		file.Close()
-		// --- 关键修改结束 ---
-
 		if rule.RuleCount != count {
 			rule.RuleCount = count
 			changed = true
@@ -562,6 +547,26 @@ func parseRules(reader io.Reader, allowM, denyM RuleReceiver) (int, error) {
 		if strings.Contains(line, "#?#") || strings.Contains(line, "##") || strings.Contains(line, "$$") {
 			continue
 		}
+
+		// OISD 等大型列表主要由 ||domain^ 组成。先走字节级快速路径，
+		// 避免为每一行执行多个正则 FindStringSubmatch。
+		if domainStr, allow, ok := parseSimpleDomainRule(line); ok {
+			mosdnsRule := convertToMosdnsRule(domainStr)
+			if strings.HasPrefix(mosdnsRule, "regexp:") {
+				if _, err := regexp.Compile(strings.TrimPrefix(mosdnsRule, "regexp:")); err != nil {
+					continue
+				}
+			}
+			target := denyM
+			if allow {
+				target = allowM
+			}
+			if err := target.Add(mosdnsRule, struct{}{}); err == nil {
+				count++
+			}
+			continue
+		}
+
 		var mosdnsRule string
 		parsed := false
 
@@ -614,6 +619,35 @@ func parseRules(reader io.Reader, allowM, denyM RuleReceiver) (int, error) {
 		}
 	}
 	return count, scanner.Err()
+}
+
+func parseSimpleDomainRule(line string) (domain string, allow, ok bool) {
+	start := 0
+	switch {
+	case strings.HasPrefix(line, "@@||"):
+		allow = true
+		start = 4
+	case strings.HasPrefix(line, "||"):
+		start = 2
+	default:
+		return "", false, false
+	}
+	if len(line) <= start+1 || line[len(line)-1] != '^' {
+		return "", false, false
+	}
+	domain = line[start : len(line)-1]
+	if domain == "" {
+		return "", false, false
+	}
+	for i := 0; i < len(domain); i++ {
+		c := domain[i]
+		if (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
+			(c >= '0' && c <= '9') || c == '_' || c == '.' || c == '-' || c == '*' {
+			continue
+		}
+		return "", false, false
+	}
+	return domain, allow, true
 }
 
 // convertToMosdnsRule 是一个辅助函数
@@ -874,7 +908,7 @@ func (p *AdguardRule) api() *chi.Mux {
 			log.Println("[adguard_rule] Manual update process finished.")
 			// 更新完成触发 reload (进而触发 notify)
 			p.triggerReload(p.ctx)
-			coremain.ManualGC() 
+			coremain.ManualGC()
 		}()
 
 		w.WriteHeader(http.StatusAccepted)
