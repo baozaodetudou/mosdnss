@@ -49,6 +49,14 @@ func (m *Matcher) Match(_ context.Context, qCtx *query_context.Context) (bool, e
 	return m.match(qCtx, domain_set.MatcherGroup(m.mg))
 }
 
+// MatchName is the allocation-free entry point used by raw DNS fast paths.
+// It preserves the same matcher ordering as Match without constructing a
+// query_context or dns.Msg.
+func (m *Matcher) MatchName(name string) bool {
+	_, ok := domain_set.MatcherGroup(m.mg).Match(name)
+	return ok
+}
+
 func NewMatcher(bq sequence.BQ, args *Args, f MatchFunc) (m *Matcher, err error) {
 	m = &Matcher{
 		match: f,

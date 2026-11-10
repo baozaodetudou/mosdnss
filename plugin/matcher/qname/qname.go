@@ -56,6 +56,11 @@ type fastQnameMatcher struct {
 	sequence.Matcher
 }
 
+func (f *fastQnameMatcher) MatchQName(name string) bool {
+	m, ok := f.Matcher.(interface{ MatchName(string) bool })
+	return ok && m.MatchName(name)
+}
+
 func (f *fastQnameMatcher) GetFastCheck() func(qCtx *query_context.Context) bool {
 	return func(qCtx *query_context.Context) bool {
 		ok, _ := f.Matcher.Match(context.Background(), qCtx)

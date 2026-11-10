@@ -45,6 +45,8 @@ type Args struct {
 	Listen      string `yaml:"listen"`
 	EnableAudit bool   `yaml:"enable_audit"`
 	FastAccel   bool   `yaml:"fast_accel"` // 指定本 server 为极限加速落点；不填则回退到监听 :53 的 server
+	Workers     int    `yaml:"workers"`    // 固定请求处理 worker 数，0 保持每请求 goroutine
+	Inline      bool   `yaml:"inline"`     // 在收包循环内同步处理，仅适用于纯 CPU 处理序列
 }
 
 func (a *Args) init() {
@@ -467,9 +469,23 @@ func StartServer(bp *coremain.BP, args *Args) (*UdpServer, error) {
 	}
 	// 候选 = 显式 fast_accel，或（向后兼容）监听 :53。最终生效由 resolveFast 跨 server 定夺。
 	candidate := args.FastAccel || port == 53
+	inline := args.Inline
+	if !inline && !candidate {
+		if p, ok := dh.(interface{ InlineSafe() bool }); ok {
+			inline = p.InlineSafe()
+		}
+	}
 
 	var wrappedHandler server.Handler = dh
 	var fastBypass func(int, []byte, netip.AddrPort) (int, int, uint64, string)
+	var fastRaw func(string) (int, bool)
+	if p, ok := dh.(interface {
+		RawRejectComplete() bool
+		RawReject(string) (int, bool)
+	}); ok && p.RawRejectComplete() {
+		fastRaw = p.RawReject
+	}
+	rawFastEnabled := fastRaw != nil
 
 	if candidate {
 		var dm DomainMapperPlugin
@@ -490,9 +506,9 @@ func StartServer(bp *coremain.BP, args *Args) (*UdpServer, error) {
 		wrappedHandler = wrappedFastHandler
 
 		fastBypass = buildFastBypass(bp, fc, c.(*net.UDPConn), reg)
-		bp.L().Info("udp server is a fast-accel candidate", zap.Stringer("addr", c.LocalAddr()), zap.Bool("fast_accel", args.FastAccel))
+		bp.L().Info("udp server is a fast-accel candidate", zap.Stringer("addr", c.LocalAddr()), zap.Bool("fast_accel", args.FastAccel), zap.Bool("inline", inline), zap.Bool("raw_fast", rawFastEnabled), zap.Int("workers", args.Workers))
 	} else {
-		bp.L().Info("udp server started normally (no fast-path)", zap.Stringer("addr", c.LocalAddr()))
+		bp.L().Info("udp server started normally (no fast-path)", zap.Stringer("addr", c.LocalAddr()), zap.Bool("inline", inline), zap.Bool("raw_fast", rawFastEnabled), zap.Int("workers", args.Workers))
 	}
 
 	// 兜底：即使没有任何查询（或根本没有候选 server），启动后也解析一次，用于"无落点"告警。
@@ -504,8 +520,11 @@ func StartServer(bp *coremain.BP, args *Args) (*UdpServer, error) {
 	go func() {
 		defer c.Close()
 		err := server.ServeUDP(c.(*net.UDPConn), wrappedHandler, server.UDPServerOpts{
-			Logger:     bp.L(),
-			FastBypass: fastBypass,
+			Logger:      bp.L(),
+			FastBypass:  fastBypass,
+			FastRaw:     fastRaw,
+			WorkerCount: args.Workers,
+			Inline:      inline,
 		})
 		bp.M().GetSafeClose().SendCloseSignal(err)
 	}()

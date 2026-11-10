@@ -84,6 +84,32 @@ func NewEntryHandler(opts EntryHandlerOpts) *EntryHandler {
 	return &EntryHandler{opts: opts}
 }
 
+// InlineSafe reports whether the entry can be executed synchronously by a UDP
+// receive loop without risking a wait on upstream I/O.
+func (h *EntryHandler) InlineSafe() bool {
+	if s, ok := h.opts.Entry.(interface{ IsInlineSafe() bool }); ok {
+		return s.IsInlineSafe()
+	}
+	return false
+}
+
+// RawRejectComplete reports whether the entry can answer every bare DNS
+// question with a stateless reject response.
+func (h *EntryHandler) RawRejectComplete() bool {
+	s, ok := h.opts.Entry.(interface{ RawRejectComplete() bool })
+	return ok && s.RawRejectComplete()
+}
+
+// RawReject evaluates the entry's stateless reject plan without allocating a
+// dns.Msg. It is used only when RawRejectComplete returns true.
+func (h *EntryHandler) RawReject(qname string) (int, bool) {
+	s, ok := h.opts.Entry.(interface{ RawReject(string) (int, bool) })
+	if !ok {
+		return 0, false
+	}
+	return s.RawReject(qname)
+}
+
 // Handle implements server.Handler.
 // If entry returns an error, a SERVFAIL response will be returned.
 // If entry returns without a response, a REFUSED response will be returned.

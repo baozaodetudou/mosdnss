@@ -173,7 +173,7 @@ func setupJump(bq BQ, s string) (any, error) {
 var _ RecursiveExecutable = (*ActionGoto)(nil)
 
 type ActionGoto struct {
-	ToChain[]*ChainNode
+	ToChain []*ChainNode
 	ToIns   []instruction
 }
 
@@ -198,6 +198,10 @@ func (m MatchAlwaysTrue) Match(_ context.Context, _ *query_context.Context) (boo
 	return true, nil
 }
 
+func (m MatchAlwaysTrue) GetFastCheck() func(qCtx *query_context.Context) bool {
+	return func(_ *query_context.Context) bool { return true }
+}
+
 func setupTrue(_ BQ, _ string) (Matcher, error) {
 	return MatchAlwaysTrue{}, nil
 }
@@ -208,6 +212,10 @@ type MatchAlwaysFalse struct{}
 
 func (m MatchAlwaysFalse) Match(_ context.Context, _ *query_context.Context) (bool, error) {
 	return false, nil
+}
+
+func (m MatchAlwaysFalse) GetFastCheck() func(qCtx *query_context.Context) bool {
+	return func(_ *query_context.Context) bool { return false }
 }
 
 func setupFalse(_ BQ, _ string) (Matcher, error) {

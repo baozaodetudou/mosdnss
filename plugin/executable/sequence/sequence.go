@@ -53,12 +53,24 @@ type fastExecutor interface {
 	GetFastExec() func(ctx context.Context, qCtx *query_context.Context) error
 }
 
+type rawQNameMatcher interface {
+	MatchQName(qname string) bool
+}
+
+type rawRejectRule struct {
+	match  func(string) bool
+	rcode  int
+	always bool
+}
+
 type Sequence struct {
 	chain            []*ChainNode
 	anonymousPlugins[]any
 	logger           *zap.Logger
 	isInline         bool
 	instructions[]instruction
+	rawRejectRules  []rawRejectRule
+	rawRejectReady  bool
 }
 
 func (s *Sequence) Close() error {
@@ -189,6 +201,74 @@ func (s *Sequence) compile() {
 		ins = append(ins, instr)
 	}
 	s.instructions = ins
+	s.compileRawReject()
+}
+
+// compileRawReject recognizes a complete, stateless reject sequence. Such a
+// sequence can answer a bare DNS question directly from the UDP receive buffer
+// without constructing dns.Msg, query_context, or a packed response.
+func (s *Sequence) compileRawReject() {
+	s.rawRejectRules = nil
+	s.rawRejectReady = false
+	if len(s.instructions) == 0 {
+		return
+	}
+
+	rules := make([]rawRejectRule, 0, len(s.instructions))
+	for _, instr := range s.instructions {
+		if !instr.isSimple || instr.node.RE == nil || len(instr.node.Matches) != 1 {
+			return
+		}
+		action, ok := instr.node.RE.(ActionReject)
+		if !ok {
+			if actionPtr, ptrOK := instr.node.RE.(*ActionReject); ptrOK && actionPtr != nil {
+				action = *actionPtr
+				ok = true
+			}
+		}
+		if !ok || action.Rcode < 0 || action.Rcode > 15 {
+			return
+		}
+
+		matcher := instr.node.Matches[0].Matcher
+		rule := rawRejectRule{rcode: action.Rcode}
+		switch matcher.(type) {
+		case MatchAlwaysTrue, *MatchAlwaysTrue:
+			rule.always = true
+			rule.match = func(string) bool { return true }
+		default:
+			rawMatcher, rawOK := matcher.(rawQNameMatcher)
+			if !rawOK {
+				return
+			}
+			rule.match = rawMatcher.MatchQName
+		}
+		rules = append(rules, rule)
+	}
+
+	if !rules[len(rules)-1].always {
+		return
+	}
+	s.rawRejectRules = rules
+	s.rawRejectReady = true
+}
+
+// RawReject evaluates the compiled stateless reject plan for a normalized or
+// fully-qualified qname. The final _true rule makes a ready plan total.
+func (s *Sequence) RawReject(qname string) (rcode int, ok bool) {
+	if !s.rawRejectReady {
+		return 0, false
+	}
+	for _, rule := range s.rawRejectRules {
+		if rule.match(qname) {
+			return rule.rcode, true
+		}
+	}
+	return 0, false
+}
+
+func (s *Sequence) RawRejectComplete() bool {
+	return s.rawRejectReady
 }
 
 // Exec 执行序列逻辑
@@ -196,6 +276,27 @@ func (s *Sequence) Exec(ctx context.Context, qCtx *query_context.Context) error 
 	// 组装并启动已经进化完毕的高性能 Walker
 	walker := NewChainWalker(s.instructions, s.chain, nil, s.logger)
 	return walker.ExecNext(ctx, qCtx)
+}
+
+// IsInlineSafe reports whether this sequence contains only the small built-in
+// terminal actions that never wait for network or other external I/O. UDP
+// servers can safely run such a sequence in their read loop and avoid a
+// goroutine per packet.
+func (s *Sequence) IsInlineSafe() bool {
+	if len(s.instructions) == 0 {
+		return false
+	}
+	for _, instr := range s.instructions {
+		if !instr.isSimple || instr.node.RE == nil {
+			return false
+		}
+		switch instr.node.RE.(type) {
+		case ActionAccept, ActionReject, ActionExit:
+		default:
+			return false
+		}
+	}
+	return true
 }
 
 func (s *Sequence) buildChain(bq BQ, rs []RuleConfig) error {
