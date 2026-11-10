@@ -31,7 +31,7 @@ import (
 )
 
 var (
-	version = "v5-ph-srs-20261110-8475366"
+	version = "v5-ph-srs"
 )
 
 func init() {
